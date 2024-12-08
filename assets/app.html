@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Ad Astra!</title>
   <style>
@@ -15,6 +16,38 @@
       color: var(--text);
       margin: 0;
       font-family: Arial, sans-serif;
+      display: grid;
+      grid-template-rows: 1fr 2fr;
+      grid-template-columns: 1fr 1fr;
+      height: 100vh;
+    }
+
+    .box {
+      border: 2px solid var(--text);
+      overflow: auto;
+      resize: both;
+      background-color: var(--background);
+    }
+
+    #mapBox {
+      grid-row: 1 / 2;
+      grid-column: 1 / 2;
+    }
+
+    #rightBox {
+      grid-row: 1 / 2;
+      grid-column: 2 / 3;
+    }
+
+    #bottomBox {
+      grid-row: 2 / 3;
+      grid-column: 1 / 3;
+    }
+
+    #galaxyMap {
+      width: 100%;
+      height: 100%;
+      overflow: auto;
     }
 
     .map {
@@ -22,6 +55,10 @@
       white-space: pre;
       color: var(--text);
       cursor: default;
+    }
+
+    .map div {
+      display: flex;
     }
 
     .map span {
@@ -38,7 +75,7 @@
       color: var(--background);
       cursor: crosshair;
     }
-    
+
     .S {
       color: var(--star);
     }
@@ -52,17 +89,22 @@
 </head>
 
 <body>
-  <div id="galaxyMap" class="map"></div>
+  <div id="mapBox" class="box">
+    <div id="galaxyMap" class="map"></div>
+  </div>
+  <div id="rightBox" class="box"></div>
+  <div id="bottomBox" class="box"></div>
+
   <script>
     function displayGalaxyMap(mapString) {
       const mapContainer = document.getElementById("galaxyMap");
-      mapContainer.innerHTML = ""; // очищает все что было раньше
+      mapContainer.innerHTML = ""; // чистим все лишнее
 
-      // делим по линиям
       const rows = mapString.trim().split("\n");
 
       rows.forEach((row) => {
         const rowElement = document.createElement("div");
+        rowElement.style.display = "flex";
 
         for (let char of row) {
           const span = document.createElement("span");
@@ -74,7 +116,7 @@
             span.className = "S";
           }
 
-          // заменяем пробелы на &nbsp;
+          // меняем пробелы на &nbsp;
           span.innerHTML = char === " " ? "&nbsp;" : char;
           rowElement.appendChild(span);
         }
