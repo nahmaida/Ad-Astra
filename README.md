@@ -7,6 +7,7 @@ __AD ASTRA!__
 ## 1. Построить:
 
 ```shell
+cmake -B build
 cmake --build build --config Release --clean-first
 ```
 
