@@ -56,9 +56,9 @@
   <script>
     function displayGalaxyMap(mapString) {
       const mapContainer = document.getElementById("galaxyMap");
-      mapContainer.innerHTML = ""; // Clear any existing content
+      mapContainer.innerHTML = ""; // очищает все что было раньше
 
-      // Split the map into rows
+      // делим по линиям
       const rows = mapString.trim().split("\n");
 
       rows.forEach((row) => {
@@ -67,14 +67,14 @@
         for (let char of row) {
           const span = document.createElement("span");
 
-          // Apply styles based on the character
+          // красим по символу
           if (char === "H") {
             span.className = "H";
           } else if (char === "S") {
             span.className = "S";
           }
 
-          // Replace spaces with &nbsp;
+          // заменяем пробелы на &nbsp;
           span.innerHTML = char === " " ? "&nbsp;" : char;
           rowElement.appendChild(span);
         }
