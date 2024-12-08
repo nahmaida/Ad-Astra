@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Ad Astra!</title>
+  <style>
+    :root {
+      --background: #1e1e2e;
+      --habitable: #a6e3a1;
+      --star: #fab387;
+      --text: #cdd6f4;
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--text);
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    .map {
+      font-family: monospace;
+      white-space: pre;
+      color: var(--text);
+      cursor: default;
+    }
+
+    .map span {
+      font-weight: bold;
+      cursor: default;
+    }
+
+    .H {
+      color: var(--habitable);
+    }
+
+    .H:hover {
+      background-color: var(--habitable);
+      color: var(--background);
+      cursor: crosshair;
+    }
+    
+    .S {
+      color: var(--star);
+    }
+
+    .S:hover {
+      background-color: var(--star);
+      color: var(--background);
+      cursor: crosshair;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="galaxyMap" class="map"></div>
+  <script>
+    function displayGalaxyMap(mapString) {
+      const mapContainer = document.getElementById("galaxyMap");
+      mapContainer.innerHTML = ""; // Clear any existing content
+
+      // Split the map into rows
+      const rows = mapString.trim().split("\n");
+
+      rows.forEach((row) => {
+        const rowElement = document.createElement("div");
+
+        for (let char of row) {
+          const span = document.createElement("span");
+
+          // Apply styles based on the character
+          if (char === "H") {
+            span.className = "H";
+          } else if (char === "S") {
+            span.className = "S";
+          }
+
+          // Replace spaces with &nbsp;
+          span.innerHTML = char === " " ? "&nbsp;" : char;
+          rowElement.appendChild(span);
+        }
+
+        mapContainer.appendChild(rowElement);
+      });
+    }
+  </script>
+</body>
+
+</html>
