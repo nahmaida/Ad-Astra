@@ -8,6 +8,7 @@
 #include <set>
 #include <string>
 #include <vector>
+#include <sstream>
 
 // шанс того что планета будет обитаемой = 1/HAB_CHANCE * 100%
 // т.е если HAB_CHANCE = 10, то шанс 10%
@@ -82,9 +83,9 @@ class CelestialBody {
                   Empire owner);
     virtual void fill() = 0;
     vector<Resources> getResources();
-    string getName();
-    Empire getOwner();
-    int getSize();
+    string getName() const;
+    Empire getOwner() const;
+    int getSize() const;
 };
 
 // класс планет

@@ -1,9 +1,11 @@
-#include "map.h"
-
+#include "../include/map.h"
 using namespace std;
 
 const double phi = (1 + sqrt(5)) / 2;
-vector<string> starNames = {};
+vector<string> starNames = {"Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta",
+                             "Eta", "Theta", "Iota", "Kappa", "Lambda", "Mu", "Nu",
+                             "Xi", "Omicron", "Pi", "Rho", "Sigma", "Tau", "Upsilon",
+                             "Phi", "Chi", "Psi", "Omega"};
 
 Resources::Resources(resource name, int amount) : name(name), amount(amount) {}
 
@@ -53,9 +55,9 @@ CelestialBody::CelestialBody(string name, int size, vector<Resources> resources,
     : name(name), size(size), resources(resources), owner(owner) {}
 
 vector<Resources> CelestialBody::getResources() { return resources; }
-string CelestialBody::getName() { return name; }
-Empire CelestialBody::getOwner() { return owner; }
-int CelestialBody::getSize() { return size; }
+string CelestialBody::getName() const { return name; }
+Empire CelestialBody::getOwner() const { return owner; }
+int CelestialBody::getSize() const { return size; }
 
 // планета. звезда тоже своего рода планета.
 Planet::Planet(string name, bool isHabitable)
