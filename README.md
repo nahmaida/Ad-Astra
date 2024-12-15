@@ -4,20 +4,19 @@ __AD ASTRA!__
 
 Минималистичная космическая стратегия. В разработке.
 
-## 1. Построить:
+## 1. Построить & запустить (дебаг):
 
 ```shell
-cmake -B build
-cmake --build build --config Release --clean-first
+g++ -c src/*.cpp -m64 -g -Wall -I include && g++ *.o -o bin/debug/main -lSDL2main -lSDL2 -lSDL2_image -lSDL2_tff && ./bin/debug/main
 ```
 
-## 2. Запустить:
+## 2. Построить & запустить (релиз):
 
 ```shell
-build/./AdAstra
+g++ -c src/*.cpp -m64 -03 -Wall -I include && g++ *.o -o bin/release/main -s -lSDL2main -lSDL2 -lSDL2_image -lSDL2_tff && ./bin/release/main
 ```
 
-Микротуториал по используемой библеотеке: [Writing Your First App](https://docs.ultralig.ht/docs/writing-your-first-app)
+Микротуториал по используемой библиотеке: [SDL](https://wiki.libsdl.org/SDL2/FrontPage)
 
 __"Ad Astra!" — это минималистичная текстовая космическая стратегия, вдохновлённая Stellaris. Игра создаётся на C++ и JavaScript с использованием тулкита Ultralight. Игрок создаёт империю, исследует галактику и взаимодействует с соседями путем войны или дипломатии.__
 
