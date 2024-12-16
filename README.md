@@ -8,14 +8,16 @@ __AD ASTRA!__
 
 ```shell
 g++ -c src/*.cpp -m64 -g -Wall -I include
-g++ *.o -o bin/debug/main -lSDL2main -lSDL2 -lSDL2_image -lSDL2_tff && ./bin/debug/main
+g++ *.o -o bin/debug/main -lSDL2main -lSDL2 -lSDL2_image -lSDL2_tff
+./bin/debug/main
 ```
 
 ## 2. Построить & запустить (релиз):
 
 ```shell
 g++ -c src/*.cpp -m64 -03 -Wall -I include
-g++ *.o -o bin/release/main -s -lSDL2main -lSDL2 -lSDL2_image -lSDL2_tff && ./bin/release/main
+g++ *.o -o bin/release/main -s -lSDL2main -lSDL2 -lSDL2_image -lSDL2_tff
+./bin/release/main
 ```
 
 Микротуториал по используемой библиотеке: [SDL](https://wiki.libsdl.org/SDL2/FrontPage)
