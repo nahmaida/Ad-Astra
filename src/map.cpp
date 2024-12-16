@@ -2,10 +2,11 @@
 using namespace std;
 
 const double phi = (1 + sqrt(5)) / 2;
-vector<string> starNames = {"Alpha", "Beta", "Gamma", "Delta", "Epsilon", "Zeta",
-                             "Eta", "Theta", "Iota", "Kappa", "Lambda", "Mu", "Nu",
-                             "Xi", "Omicron", "Pi", "Rho", "Sigma", "Tau", "Upsilon",
-                             "Phi", "Chi", "Psi", "Omega"};
+vector<string> starNames = {"Alpha",  "Beta", "Gamma", "Delta", "Epsilon",
+                            "Zeta",   "Eta",  "Theta", "Iota",  "Kappa",
+                            "Lambda", "Mu",   "Nu",    "Xi",    "Omicron",
+                            "Pi",     "Rho",  "Sigma", "Tau",   "Upsilon",
+                            "Phi",    "Chi",  "Psi",   "Omega"};
 
 Resources::Resources(resource name, int amount) : name(name), amount(amount) {}
 
@@ -96,7 +97,9 @@ habitableType Planet::getType() const { return type; }
 
 // звездная система с планетками
 System::System(string name, int size)
-    : CelestialBody(name, size, {}, Empire()), planets({}), location(MapPoint()) {}
+    : CelestialBody(name, size, {}, Empire()),
+      planets({}),
+      location(MapPoint()) {}
 
 void System::fill() {
     for (int i = 0; i < size; i++) {
@@ -261,8 +264,7 @@ void Galaxy::generateMap() {
 
     // рисуем системы
     for (const System& system : systems) {
-        string uninhabitableName =
-            "S";  // желтая если нет обитаемых систем
+        string uninhabitableName = "S";  // желтая если нет обитаемых систем
         string inhabitableName = "H";  // зеленая если есть
         string name =
             (system.hasHabitables()) ? inhabitableName : uninhabitableName;
@@ -282,9 +284,9 @@ void Galaxy::generateMap() {
     // рисуем соединения
     for (const Line& line : connections) {
         MapPoint start((line.start.x * maxHeight) / 100,
-                    (line.start.y * maxWidth) / 100);
+                       (line.start.y * maxWidth) / 100);
         MapPoint end((line.end.x * maxHeight) / 100,
-                  (line.end.y * maxWidth) / 100);
+                     (line.end.y * maxWidth) / 100);
         drawLine(map, start, end);
     }
 
