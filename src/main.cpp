@@ -157,6 +157,8 @@ void displayGalaxy(const Galaxy &galaxy) {
 
             // Выводим планетки
             SDL_Color textColor = {205, 214, 244, 255};
+            SDL_Color darkTextColor = {30, 30, 46, 255};
+            SDL_Color bgGreen = {166, 227, 161, 255};
             SDL_Surface *surface;
             SDL_Texture *texture;
             TTF_Font *font = TTF_OpenFont(
@@ -178,8 +180,17 @@ void displayGalaxy(const Galaxy &galaxy) {
                 // Выводим планеты
                 int yOffset = 30;
                 for (const Planet &planet : planets) {
-                    surface = TTF_RenderText_Solid(
-                        font, ("-" + planet.getName()).c_str(), textColor);
+                    if (planet.isHabitable()) {
+                        surface = TTF_RenderText_Shaded(
+                            font, ("-" + planet.getName()).c_str(),
+                            darkTextColor, bgGreen);
+                    } else if (planet.getName()[0] == '*') {
+                        surface = TTF_RenderText_Solid(
+                            font, (planet.getName()).c_str(), textColor);
+                    } else {
+                        surface = TTF_RenderText_Solid(
+                            font, ("-" + planet.getName()).c_str(), textColor);
+                    }
                     texture = SDL_CreateTextureFromSurface(renderer, surface);
                     textRect = {infoBox.x + 20, infoBox.y + yOffset, surface->w,
                                 surface->h};

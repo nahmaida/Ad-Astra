@@ -102,10 +102,13 @@ System::System(string name, int size)
       location(MapPoint()) {}
 
 void System::fill() {
+    Planet* star = new Planet("* " + name, false);
+    star->fill();
+    planets.push_back(*star);
     for (int i = 0; i < size; i++) {
         bool isHabitable =
             (rand() % HAB_CHANCE == 0);  // определяем обитаемость
-        Planet* planet = new Planet(name + " " + to_string(i), isHabitable);
+        Planet* planet = new Planet(name + " " + to_string(i + 1), isHabitable);
 
         planet->fill();
 
