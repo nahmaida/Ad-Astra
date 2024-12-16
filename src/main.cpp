@@ -12,6 +12,50 @@ const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 800;
 const int FONT_SIZE = 24;
 
+void renderSystemInfo(TTF_Font *font, System *selectedSystem,
+                      SDL_Renderer *renderer, SDL_Rect &infoBox,
+                      const std::vector<Planet> &planets) {
+    // Цвета и т.п.
+    SDL_Color textColor = {205, 214, 244, 255};
+    SDL_Color darkTextColor = {30, 30, 46, 255};
+    SDL_Color bgGreen = {166, 227, 161, 255};
+    SDL_Color bgYellow = {249, 226, 175, 255};
+    SDL_Surface *surface;
+    SDL_Texture *texture;
+
+    // Выводим имя системы
+    surface = TTF_RenderText_Solid(font, selectedSystem->getName().c_str(),
+                                   textColor);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect textRect = {infoBox.x + 10, infoBox.y + 10, surface->w,
+                         surface->h};
+    SDL_RenderCopy(renderer, texture, nullptr, &textRect);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+    // Выводим планеты
+    int yOffset = 30;
+    for (const Planet &planet : planets) {
+        if (planet.isHabitable()) {
+            surface = TTF_RenderText_Shaded(
+                font, ("-" + planet.getName()).c_str(), darkTextColor, bgGreen);
+        } else if (planet.getName()[0] == '*') {
+            surface = TTF_RenderText_Shaded(font, (planet.getName()).c_str(),
+                                            darkTextColor, bgYellow);
+        } else {
+            surface = TTF_RenderText_Solid(
+                font, ("-" + planet.getName()).c_str(), textColor);
+        }
+        texture = SDL_CreateTextureFromSurface(renderer, surface);
+        textRect = {infoBox.x + 20, infoBox.y + yOffset, surface->w,
+                    surface->h};
+        SDL_RenderCopy(renderer, texture, nullptr, &textRect);
+        SDL_FreeSurface(surface);
+        SDL_DestroyTexture(texture);
+        yOffset += 20;
+    }
+}
+
 void displayGalaxy(const Galaxy &galaxy) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         std::cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError()
@@ -156,50 +200,14 @@ void displayGalaxy(const Galaxy &galaxy) {
             SDL_RenderDrawRect(renderer, &infoBox);
 
             // Выводим планетки
-            SDL_Color textColor = {205, 214, 244, 255};
-            SDL_Color darkTextColor = {30, 30, 46, 255};
-            SDL_Color bgGreen = {166, 227, 161, 255};
-            SDL_Surface *surface;
-            SDL_Texture *texture;
             TTF_Font *font = TTF_OpenFont(
                 "/home/nahmaida/Ad-Astra/res/bytebounce_medium.ttf", 24);
             if (font == nullptr) {
                 std::cerr << "Failed to load font: " << TTF_GetError()
                           << std::endl;
             } else {
-                // Выводим имя системы
-                surface = TTF_RenderText_Solid(
-                    font, selectedSystem->getName().c_str(), textColor);
-                texture = SDL_CreateTextureFromSurface(renderer, surface);
-                SDL_Rect textRect = {infoBox.x + 10, infoBox.y + 10, surface->w,
-                                     surface->h};
-                SDL_RenderCopy(renderer, texture, nullptr, &textRect);
-                SDL_FreeSurface(surface);
-                SDL_DestroyTexture(texture);
-
-                // Выводим планеты
-                int yOffset = 30;
-                for (const Planet &planet : planets) {
-                    if (planet.isHabitable()) {
-                        surface = TTF_RenderText_Shaded(
-                            font, ("-" + planet.getName()).c_str(),
-                            darkTextColor, bgGreen);
-                    } else if (planet.getName()[0] == '*') {
-                        surface = TTF_RenderText_Solid(
-                            font, (planet.getName()).c_str(), textColor);
-                    } else {
-                        surface = TTF_RenderText_Solid(
-                            font, ("-" + planet.getName()).c_str(), textColor);
-                    }
-                    texture = SDL_CreateTextureFromSurface(renderer, surface);
-                    textRect = {infoBox.x + 20, infoBox.y + yOffset, surface->w,
-                                surface->h};
-                    SDL_RenderCopy(renderer, texture, nullptr, &textRect);
-                    SDL_FreeSurface(surface);
-                    SDL_DestroyTexture(texture);
-                    yOffset += 20;
-                }
-
+                renderSystemInfo(font, selectedSystem, renderer, infoBox,
+                                 planets);
                 TTF_CloseFont(font);
             }
         }
