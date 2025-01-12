@@ -2,11 +2,7 @@
 using namespace std;
 
 const double phi = (1 + sqrt(5)) / 2;
-vector<string> starNames = {"Alpha",  "Beta", "Gamma", "Delta", "Epsilon",
-                            "Zeta",   "Eta",  "Theta", "Iota",  "Kappa",
-                            "Lambda", "Mu",   "Nu",    "Xi",    "Omicron",
-                            "Pi",     "Rho",  "Sigma", "Tau",   "Upsilon",
-                            "Phi",    "Chi",  "Psi",   "Omega"};
+vector<string> starNames = {};
 
 Resources::Resources(resource name, int amount) : name(name), amount(amount) {}
 
@@ -14,6 +10,21 @@ MapPoint::MapPoint(int x, int y) : x(x), y(y) {}
 MapPoint::MapPoint() : x(0), y(0) {}
 
 Line::Line(MapPoint s, MapPoint e) : start(s), end(e) {}
+
+void loadStarnames(string filename) {
+    ifstream file(filename);
+    if (!file.is_open()) {
+        cerr << "ОШИБКА: Не удалось открыть файл " << filename << endl;
+        return;
+    }
+
+    string line;
+    while (getline(file, line)) {
+        starNames.push_back(line);
+    }
+
+    file.close();
+}
 
 // распределяет n точек в круг
 vector<MapPoint> sunflower(int n, int alpha, bool geodesic) {
@@ -51,18 +62,16 @@ vector<Resources> addResources(vector<Resources> one, vector<Resources> two) {
 }
 
 // вирт класс небесное тело
-CelestialBody::CelestialBody(string name, int size, vector<Resources> resources,
-                             Empire owner)
-    : name(name), size(size), resources(resources), owner(owner) {}
+CelestialBody::CelestialBody(string name, int size, vector<Resources> resources)
+    : name(name), size(size), resources(resources) {}
 
 vector<Resources> CelestialBody::getResources() { return resources; }
 string CelestialBody::getName() const { return name; }
-Empire CelestialBody::getOwner() const { return owner; }
 int CelestialBody::getSize() const { return size; }
 
 // планета. звезда тоже своего рода планета.
 Planet::Planet(string name, bool isHabitable)
-    : CelestialBody(name, 0, {}, Empire()),
+    : CelestialBody(name, 0, {}),
       habitable(isHabitable),
       population(0),
       type(static_cast<habitableType>(0)) {}
@@ -97,7 +106,7 @@ habitableType Planet::getType() const { return type; }
 
 // звездная система с планетками
 System::System(string name, int size)
-    : CelestialBody(name, size, {}, Empire()),
+    : CelestialBody(name, size, {}),
       planets({}),
       location(MapPoint()) {}
 

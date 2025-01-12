@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cmath>
 #include <iostream>
+#include <fstream>
 #include <random>
 #include <set>
 #include <string>
@@ -35,8 +36,6 @@ enum habitableType {
     Горный,
     Тундра
 };
-
-class Empire {};
 
 // enum ресурсов
 enum resource { Минералы, Энергия, Металлы, Блага };
@@ -76,15 +75,11 @@ class CelestialBody {
     string name;
     int size;
     vector<Resources> resources;
-    Empire owner;
-
    public:
-    CelestialBody(string name, int size, vector<Resources> resources,
-                  Empire owner);
+    CelestialBody(string name, int size, vector<Resources> resources);
     virtual void fill() = 0;
     vector<Resources> getResources();
     string getName() const;
-    Empire getOwner() const;
     int getSize() const;
 };
 
@@ -143,6 +138,7 @@ class Galaxy {
 };
 
 // функции
+void loadStarnames(string filename);
 vector<MapPoint> sunflower(int n, int alpha = 0, bool geodesic = false);
 vector<Resources> addResources(vector<Resources> one, vector<Resources> two);
 
