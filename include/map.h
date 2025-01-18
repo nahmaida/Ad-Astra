@@ -46,6 +46,7 @@ class Resources {
     resource name;
     int amount;
     Resources(resource name, int amount);
+    int getPrice() const;
 };
 
 // структ для зданий
@@ -105,12 +106,18 @@ class System : public CelestialBody {
    private:
     vector<Planet> planets;
     MapPoint location;
+    int id;
+    int power;
 
    public:
     System(string name, int size);
     void fill() override;
     bool hasHabitables() const;
     void setLocation(MapPoint point);
+    void setId(int id);
+    void setPower(int power);
+    int getId() const;
+    int getPower() const;
     MapPoint getLocation() const;
     vector<Planet> getPlanets() const;
 };
@@ -121,7 +128,6 @@ class Galaxy {
     int size;
     vector<System> systems;
     vector<Line> connections;
-    vector<vector<string>> map;
 
     void connectSystems();
     void drawLine(vector<vector<string>>& map, MapPoint start, MapPoint end) const;
@@ -141,5 +147,6 @@ class Galaxy {
 void loadStarnames(string filename);
 vector<MapPoint> sunflower(int n, int alpha = 0, bool geodesic = false);
 vector<Resources> addResources(vector<Resources> one, vector<Resources> two);
+vector<System*> getNeighbors(System* targetSystem, Galaxy galaxy);
 
 #endif  // MAP_H

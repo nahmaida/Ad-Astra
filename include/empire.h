@@ -19,6 +19,7 @@ class Empire {
     habitableType getPreferredType() const;
     vector<System*> getSystems() const;
     void fill(Galaxy galaxy);
+    void addSystem(System* system);
     Empire& operator=(const Empire& other);
     ~Empire();
 };

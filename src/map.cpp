@@ -5,6 +5,16 @@ const double phi = (1 + sqrt(5)) / 2;
 vector<string> starNames = {};
 
 Resources::Resources(resource name, int amount) : name(name), amount(amount) {}
+int Resources::getPrice() const {
+    switch (name) {
+        case resource::Минералы:
+            return MINERAL_PRICE * amount;
+        case resource::Энергия:
+            return amount;
+        default:
+            return 0;
+    }
+}
 
 MapPoint::MapPoint(int x, int y) : x(x), y(y) {}
 MapPoint::MapPoint() : x(0), y(0) {}
@@ -82,13 +92,13 @@ void Planet::fill() {
 
     // 50% что будут минералы
     if (rand() % 2) {
-        int amount = rand() % 10 + 1;  // кол-во минералов от 1 до 10
+        int amount = rand() % 3 + 1;  // кол-во минералов от 1 до 3
         resources.push_back(Resources(Минералы, amount));
     }
 
     // 33% что будет энергия
     if (!(rand() % 3)) {
-        int amount = rand() % 10 + 1;  // кол-во энергии от 1 до 10
+        int amount = rand() % 5 + 1;  // кол-во энергии от 1 до 5
         resources.push_back(Resources(Энергия, amount));
     }
 
@@ -108,7 +118,9 @@ habitableType Planet::getType() const { return type; }
 System::System(string name, int size)
     : CelestialBody(name, size, {}),
       planets({}),
-      location(MapPoint()) {}
+      location(MapPoint()),
+      id(NULL),
+      power(100) {}
 
 void System::fill() {
     Planet* star = new Planet("* " + name, false);
@@ -140,48 +152,39 @@ bool System::hasHabitables() const {
 }
 
 void System::setLocation(MapPoint point) { location = point; }
+void System::setId(int id) { this->id = id; }
+void System::setPower(int power) { this->power = power; }
+int System::getId() const { return id; }
+int System::getPower() const { return power; }
 MapPoint System::getLocation() const { return location; }
 vector<Planet> System::getPlanets() const { return planets; }
 
 // галактика с вектором систем
-Galaxy::Galaxy(int size) : size(size), systems({}), connections({}), map({}) {}
+Galaxy::Galaxy(int size) : size(size), systems({}), connections({}) {}
 
-// заполняет галактику
+// Заполняет галактику
 void Galaxy::fill() {
     for (int i = 0; i < size; i++) {
-        // выбирает случайное название и кол-во планет
         string name = starNames[rand() % starNames.size()];
         int planetCount = rand() % 6 + 1;
 
-        System system(name, planetCount + 1);
+        // Создаем новую систему и задаем уникальный ID
+        System system(name, planetCount);
+        system.setId(i);
 
-        // Заполняет каждую систему
+        // Заполняем систему
         system.fill();
         systems.push_back(system);
     }
 
-    // генерирует расположение для каждой системы
+    // Расставляем системы по координатам
     vector<MapPoint> points = sunflower(systems.size());
-    for (int j = 0; j < points.size(); j++) {
+    for (size_t j = 0; j < systems.size(); j++) {
         systems[j].setLocation(points[j]);
     }
 
-    // соединяет системы с соседями
+    // Создаем соединения между системами
     connectSystems();
-
-    // генерирует карту
-    generateMap();
-}
-
-// выводит карту
-void Galaxy::printMap() const {
-    // печатаем карту
-    for (const auto& row : map) {
-        for (const auto& cell : row) {
-            cout << cell;
-        }
-        cout << endl;
-    }
 }
 
 vector<System> Galaxy::getSystems() const { return systems; }
@@ -239,79 +242,28 @@ void Galaxy::connectSystems() {
     }
 }
 
-void Galaxy::drawLine(vector<vector<string>>& map, MapPoint start,
-                      MapPoint end) const {
-    int x0 = start.x, y0 = start.y;
-    int x1 = end.x, y1 = end.y;
-
-    // алгоритм Брезенхэма для рисования линии
-    int dx = abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
-    int dy = -abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
-    int err = dx + dy, e2;
-
-    while (true) {
-        if (x0 >= 0 && x0 < map.size() && y0 >= 0 && y0 < map[0].size() &&
-            map[x0][y0] == " ") {
-            map[x0][y0] = ".";  // отметка пути линии
-        }
-        if (x0 == x1 && y0 == y1) break;
-        e2 = 2 * err;
-        if (e2 >= dy) {
-            err += dy;
-            x0 += sx;
-        }
-        if (e2 <= dx) {
-            err += dx;
-            y0 += sy;
+vector<System*> getNeighbors(System* targetSystem, Galaxy galaxy) {
+    vector<System*> neighbors;
+    MapPoint location = targetSystem->getLocation();
+    for (Line connection : galaxy.getConnections()) {
+        if (connection.start.x == location.x &&
+            connection.start.y == location.y) {
+            for (System system : galaxy.getSystems()) {
+                if (connection.end.x == system.getLocation().x &&
+                    connection.end.y == system.getLocation().y) {
+                    neighbors.push_back(&system);
+                }
+            }
+        } else if (connection.end.x == location.x &&
+                   connection.end.y == location.y) {
+            for (System system : galaxy.getSystems()) {
+                if (connection.start.x == system.getLocation().x &&
+                    connection.start.y == system.getLocation().y) {
+                    neighbors.push_back(&system);
+                }
+            }
         }
     }
-}
-
-void Galaxy::generateMap() {
-    const int maxHeight = 50;  // максимальная высота карты
-    const int maxWidth = 150;  // максимальная ширина карты
-
-    // динамическое создание карты
-    vector<vector<string>> map(maxHeight, vector<string>(maxWidth, " "));
-
-    // рисуем системы
-    for (const System& system : systems) {
-        string uninhabitableName = "S";  // желтая если нет обитаемых систем
-        string inhabitableName = "H";  // зеленая если есть
-        string name =
-            (system.hasHabitables()) ? inhabitableName : uninhabitableName;
-
-        MapPoint location = system.getLocation();
-
-        // пропорционально масштабируем координаты под размер карты
-        int scaledX = (location.x * maxHeight) / 100;
-        int scaledY = (location.y * maxWidth) / 100;
-
-        if (scaledX >= 0 && scaledX < maxHeight && scaledY >= 0 &&
-            scaledY < maxWidth) {
-            map[scaledX][scaledY] = name;
-        }
-    }
-
-    // рисуем соединения
-    for (const Line& line : connections) {
-        MapPoint start((line.start.x * maxHeight) / 100,
-                       (line.start.y * maxWidth) / 100);
-        MapPoint end((line.end.x * maxHeight) / 100,
-                     (line.end.y * maxWidth) / 100);
-        drawLine(map, start, end);
-    }
-
-    this->map = map;
-}
-
-string Galaxy::getMap() const {
-    string mapString;
-    for (const auto& row : map) {
-        for (const auto& cell : row) {
-            mapString += cell;
-        }
-        mapString += '\n';
-    }
-    return mapString;
+    cout << "www" << endl;
+    return neighbors;
 }
