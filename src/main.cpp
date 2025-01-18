@@ -32,6 +32,20 @@ bool isOwned(SDL_Color color) {
              color.b == defaultHabitable.b && color.a == defaultHabitable.a);
 }
 
+void updatePower(std::unordered_map<int, SDL_Color> &systemColors,
+                 System &system) {
+    if (isOwned(systemColors[system.getId()])) {
+        system.setPower(system.getPower() + 1);
+        if (system.hasHabitables()) {
+            int revenue = 0;
+            for (const Resources &resource : system.getResources()) {
+                revenue += resource.getPrice();
+            }
+            system.setPower(system.getPower() + revenue);
+        }
+    }
+}
+
 void renderSystemInfo(TTF_Font *font, System *selectedSystem,
                       SDL_Renderer *renderer, SDL_Rect &infoBox,
                       const std::vector<Planet> &planets) {
@@ -208,7 +222,7 @@ void displayGalaxy(const Galaxy &galaxy, std::vector<Empire *> &empires) {
         std::unordered_map<int, SDL_Color> systemColors =
             getSystemColors(systems, empires, empireColors);
 
-        for (Empire* empire : empires) {
+        for (Empire *empire : empires) {
             System &randomSystem = systems[i];
             conquer(randomSystem, empire, empires, empireColors, systemColors,
                     galaxy);
@@ -240,16 +254,7 @@ void displayGalaxy(const Galaxy &galaxy, std::vector<Empire *> &empires) {
                 break;
             }
 
-            if (isOwned(systemColors[system.getId()])) {
-                system.setPower(system.getPower() + 1);
-                if (system.hasHabitables()) {
-                    int revenue = 0;
-                    for (const Resources &resource : system.getResources()) {
-                        revenue += resource.getPrice();
-                    }
-                    system.setPower(system.getPower() + revenue);
-                }
-            }
+            updatePower(systemColors, system);
         }
 
         SDL_SetRenderDrawColor(renderer, 30, 30, 46, 255);
@@ -303,12 +308,7 @@ void displayGalaxy(const Galaxy &galaxy, std::vector<Empire *> &empires) {
     SDL_Quit();
 }
 
-int main(int argc, char *args[]) {
-    loadStarnames("/home/nahmaida/Ad-Astra/res/starnames.txt");
-    Galaxy galaxy(100);
-    galaxy.fill();
-
-    std::vector<Empire *> empires;
+void generateEmpires(std::vector<Empire *> &empires, Galaxy &galaxy) {
     while (empires.size() < 9) {
         int i = empires.size();
         Empire *empire = new Empire(i + 1);
@@ -325,6 +325,15 @@ int main(int argc, char *args[]) {
             empires.push_back(empire);
         }
     }
+}
+
+int main(int argc, char *args[]) {
+    loadStarnames("/home/nahmaida/Ad-Astra/res/starnames.txt");
+    Galaxy galaxy(100);
+    galaxy.fill();
+
+    std::vector<Empire *> empires;
+    generateEmpires(empires, galaxy);
 
     displayGalaxy(galaxy, empires);
 
