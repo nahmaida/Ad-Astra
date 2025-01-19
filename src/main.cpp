@@ -3,7 +3,8 @@
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 800;
 const int FONT_SIZE = 22;
-const int DELAY = 2000;
+const int DELAY = 2000;  // Интервал обновления силы (в миллисекундах)
+const int FPS = 30;
 
 int main(int argc, char *args[]) {
     loadStarnames("/home/nahmaida/Ad-Astra/res/starnames.txt");
@@ -54,6 +55,29 @@ void updatePower(unordered_map<int, SDL_Color> &systemColors, System &system) {
     }
 }
 
+// Функция, которая обновляет и захватывает случайную соседнюю звезду для каждой
+// империи
+void conquerRandomNeighbor(
+    vector<Empire *> &empires, const Galaxy &galaxy,
+    unordered_map<const Empire *, SDL_Color> &empireColors,
+    unordered_map<int, SDL_Color> &systemColors) {
+    random_device rd;
+    mt19937 rng(rd());
+    uniform_int_distribution<int> dist(0, 100);  // диапазон случайных чисел
+
+    for (Empire *empire : empires) {
+        vector<System *> systems = empire->getSystems();
+        System *system = systems[dist(rng) % systems.size()];
+        vector<System *> neighbors = getNeighbors(system, galaxy);
+        if (!neighbors.empty()) {
+            // Выбираем случайного соседа
+            System *randomNeighbor = neighbors[dist(rng) % neighbors.size()];
+            conquer(*randomNeighbor, empire, empires, empireColors,
+                    systemColors, galaxy);
+        }
+    }
+}
+
 void renderSystemInfo(TTF_Font *font, System *selectedSystem,
                       SDL_Renderer *renderer, SDL_Rect &infoBox,
                       const vector<Planet> &planets) {
@@ -65,7 +89,7 @@ void renderSystemInfo(TTF_Font *font, System *selectedSystem,
     SDL_Surface *surface;
     SDL_Texture *texture;
 
-    // Render system name
+    // Отображаем имя системы
     surface = TTF_RenderText_Solid(font, selectedSystem->getName().c_str(),
                                    textColor);
     texture = SDL_CreateTextureFromSurface(renderer, surface);
@@ -75,7 +99,7 @@ void renderSystemInfo(TTF_Font *font, System *selectedSystem,
     SDL_FreeSurface(surface);
     SDL_DestroyTexture(texture);
 
-    // Render planets
+    // Отображаем планеты
     int yOffset = 30;
     for (const Planet &planet : planets) {
         if (planet.isHabitable()) {
@@ -145,7 +169,7 @@ void drawSystem(const System &system, const int CELL_SIZE,
                            systemColor.b, systemColor.a);
     SDL_RenderFillRect(renderer, &rect);
 
-    // Render "10" under the star
+    // Отображаем силу под звездой
     SDL_Color textColor = {205, 214, 244, 255};
     char *power;
     sprintf(power, "%d", system.getPower());
@@ -162,7 +186,7 @@ void drawSystemHover(System *hoveredSystem, int mouseX, int mouseY,
                      SDL_Renderer *renderer, TTF_Font *font) {
     const vector<Planet> &planets = hoveredSystem->getPlanets();
     const int INFO_BOX_WIDTH = 150;
-    const int INFO_BOX_HEIGHT = (planets.size() + 1) * FONT_SIZE;
+    const int INFO_BOX_HEIGHT = (planets.size() + 1) * FONT_SIZE + 10;
     int infoBoxX = mouseX + 10;
     int infoBoxY = mouseY + 10;
 
@@ -237,6 +261,7 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
     bool quit = false;
     SDL_Event e;
     System *hoveredSystem = nullptr;
+    System *selectedSystem = nullptr;
 
     unordered_map<const Empire *, SDL_Color> empireColors;
     random_device rd;
@@ -248,31 +273,29 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
                                          static_cast<Uint8>(dist(rng)),
                                          static_cast<Uint8>(dist(rng)), 255};
     }
-    int i = 0;
+
+    // Задержка для силы
+    Uint32 lastPowerUpdate = SDL_GetTicks();
+    const Uint32 powerUpdateInterval = DELAY;  // 2000 ms
+
+    // 30 FPS
+    const Uint32 frameDelay = 1000 / FPS;  // ~33 ms
+    Uint32 frameStart, frameTime;
+
+    Uint32 lastConquerUpdate = SDL_GetTicks();
+    const Uint32 conquerUpdateInterval = 2000;  // 2000 ms
 
     while (!quit) {
+        frameStart = SDL_GetTicks();
+
         unordered_map<int, SDL_Color> systemColors =
             getSystemColors(systems, empires, empireColors);
 
-        for (Empire *empire : empires) {
-            System &randomSystem = systems[i];
-            conquer(randomSystem, empire, empires, empireColors, systemColors,
-                    galaxy);
-            i++;
-            if (i >= 100) {
-                i = 0;
-            }
-        }
         int mouseX, mouseY;
         SDL_GetMouseState(&mouseX, &mouseY);
         hoveredSystem = nullptr;
 
-        while (SDL_PollEvent(&e) != 0) {
-            if (e.type == SDL_QUIT) {
-                quit = true;
-            }
-        }
-
+        // Проверка на наведенный объект
         for (System &system : systems) {
             MapPoint location = system.getLocation();
             int starX = location.x * CELL_SIZE;
@@ -282,13 +305,37 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
                              CELL_SIZE, CELL_SIZE};
             if (mouseX >= rect.x && mouseX < rect.x + rect.w &&
                 mouseY >= rect.y && mouseY < rect.y + rect.h) {
-                hoveredSystem = const_cast<System *>(&system);
+                hoveredSystem = &system;
                 break;
             }
-
-            updatePower(systemColors, system);
         }
 
+        // Обработка событий
+        while (SDL_PollEvent(&e) != 0) {
+            if (e.type == SDL_QUIT) {
+                quit = true;
+            } else if (e.type == SDL_MOUSEBUTTONDOWN &&
+                       e.button.button == SDL_BUTTON_LEFT) {
+                handlePowerTransfer(hoveredSystem, selectedSystem, galaxy);
+            }
+        }
+
+        // Обновление силы
+        if (SDL_GetTicks() - lastPowerUpdate >= powerUpdateInterval) {
+            for (System &system : systems) {
+                updatePower(systemColors, system);
+            }
+
+            lastPowerUpdate = SDL_GetTicks();
+        }
+
+        // Обновление захвата случайных соседей
+        if (SDL_GetTicks() - lastConquerUpdate >= conquerUpdateInterval) {
+            conquerRandomNeighbor(empires, galaxy, empireColors, systemColors);
+            lastConquerUpdate = SDL_GetTicks();
+        }
+
+        // Отображение
         SDL_SetRenderDrawColor(renderer, 30, 30, 46, 255);
         SDL_RenderClear(renderer);
 
@@ -304,12 +351,29 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
                        systemColors, font);
         }
 
+        // Выделение выбранной системы и ее соседей
+        if (selectedSystem) {
+            vector<System *> neighbors = getNeighbors(selectedSystem, galaxy);
+            drawSystem(*selectedSystem, CELL_SIZE, nullptr, HOVER_SIZE,
+                       renderer, systemColors, font);
+
+            for (System *neighbor : neighbors) {
+                drawSystem(*neighbor, CELL_SIZE, nullptr, HOVER_SIZE, renderer,
+                           systemColors, font);
+            }
+        }
+
         if (hoveredSystem) {
             drawSystemHover(hoveredSystem, mouseX, mouseY, renderer, font);
         }
 
         SDL_RenderPresent(renderer);
-        SDL_Delay(DELAY);
+
+        // Ограничение кадровой частоты
+        frameTime = SDL_GetTicks() - frameStart;
+        if (frameDelay > frameTime) {
+            SDL_Delay(frameDelay - frameTime);
+        }
     }
 
     TTF_CloseFont(font);
@@ -317,6 +381,37 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
     SDL_DestroyWindow(window);
     TTF_Quit();
     SDL_Quit();
+}
+
+void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,
+                         const Galaxy &galaxy) {
+    if (!hoveredSystem) {
+        return;
+    }
+
+    if (!selectedSystem) {
+        // Выбираем систему если нет выбраной
+        selectedSystem = hoveredSystem;
+    } else if (selectedSystem == hoveredSystem) {
+        // Отменяем выбор
+        selectedSystem = nullptr;
+    } else {
+        // Проверяем что системы соседи
+        vector<System *> neighbors = getNeighbors(selectedSystem, galaxy);
+        if (find(neighbors.begin(), neighbors.end(), hoveredSystem) !=
+            neighbors.end()) {
+            // Переводим силу
+            int transferAmount = selectedSystem->getPower();
+            if (transferAmount > 0) {
+                selectedSystem->setPower(selectedSystem->getPower() -
+                                         transferAmount);
+                hoveredSystem->setPower(hoveredSystem->getPower() +
+                                        transferAmount);
+            }
+        }
+        // Отменяем выбор
+        selectedSystem = nullptr;
+    }
 }
 
 void generateEmpire(vector<Empire *> &empires, Galaxy &galaxy) {
@@ -330,8 +425,10 @@ void generateEmpire(vector<Empire *> &empires, Galaxy &galaxy) {
             break;
         }
     }
+    MapPoint location = empire->getSystems()[0]->getLocation();
 
     if (empire) {
+        cout << location.x << " " << location.y << endl;
         empires.push_back(empire);
     }
 }

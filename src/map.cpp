@@ -242,28 +242,28 @@ void Galaxy::connectSystems() {
     }
 }
 
-vector<System*> getNeighbors(System* targetSystem, Galaxy galaxy) {
+vector<System*> getNeighbors(System* targetSystem, const Galaxy& galaxy) {
     vector<System*> neighbors;
     MapPoint location = targetSystem->getLocation();
+
     for (Line connection : galaxy.getConnections()) {
         if (connection.start.x == location.x &&
             connection.start.y == location.y) {
-            for (System system : galaxy.getSystems()) {
+            for (System& system : galaxy.getSystems()) { // Use reference here
                 if (connection.end.x == system.getLocation().x &&
                     connection.end.y == system.getLocation().y) {
-                    neighbors.push_back(&system);
+                    neighbors.push_back(&system); // Store pointer to valid object
                 }
             }
         } else if (connection.end.x == location.x &&
                    connection.end.y == location.y) {
-            for (System system : galaxy.getSystems()) {
+            for (System& system : galaxy.getSystems()) { // Use reference here
                 if (connection.start.x == system.getLocation().x &&
                     connection.start.y == system.getLocation().y) {
-                    neighbors.push_back(&system);
+                    neighbors.push_back(&system); // Store pointer to valid object
                 }
             }
         }
     }
-    cout << "www" << endl;
     return neighbors;
 }

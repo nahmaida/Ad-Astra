@@ -24,7 +24,7 @@ extern const double phi;
 // вектор возможных названий для систем
 extern vector<string> starNames;
 
-// enum возможных типов обитаемых планет
+// enum возможных типов` обитаемых планет
 enum habitableType {
     Пустынный,
     Сухой,
@@ -147,6 +147,6 @@ class Galaxy {
 void loadStarnames(string filename);
 vector<MapPoint> sunflower(int n, int alpha = 0, bool geodesic = false);
 vector<Resources> addResources(vector<Resources> one, vector<Resources> two);
-vector<System*> getNeighbors(System* targetSystem, Galaxy galaxy);
+vector<System*> getNeighbors(System* targetSystem, const Galaxy &galaxy);
 
 #endif  // MAP_H
