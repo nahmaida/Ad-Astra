@@ -32,6 +32,11 @@ void conquer(System &system, Empire *empire, vector<Empire *> &empires,
     empire->addSystem(&system);
 }
 
+bool isSameColor(SDL_Color color1, SDL_Color color2) {
+    return color1.r == color2.r && color1.g == color2.g &&
+           color1.b == color2.b && color1.a == color2.a;
+}
+
 bool isOwned(SDL_Color color) {
     SDL_Color defaultStar = {249, 226, 175, 255};
     SDL_Color defaultHabitable = {166, 227, 161, 255};
@@ -316,7 +321,7 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
                 quit = true;
             } else if (e.type == SDL_MOUSEBUTTONDOWN &&
                        e.button.button == SDL_BUTTON_LEFT) {
-                handlePowerTransfer(hoveredSystem, selectedSystem, galaxy);
+                handlePowerTransfer(hoveredSystem, selectedSystem, galaxy, empires, empireColors, systemColors);
             }
         }
 
@@ -351,18 +356,6 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
                        systemColors, font);
         }
 
-        // Выделение выбранной системы и ее соседей
-        if (selectedSystem) {
-            vector<System *> neighbors = getNeighbors(selectedSystem, galaxy);
-            drawSystem(*selectedSystem, CELL_SIZE, nullptr, HOVER_SIZE,
-                       renderer, systemColors, font);
-
-            for (System *neighbor : neighbors) {
-                drawSystem(*neighbor, CELL_SIZE, nullptr, HOVER_SIZE, renderer,
-                           systemColors, font);
-            }
-        }
-
         if (hoveredSystem) {
             drawSystemHover(hoveredSystem, mouseX, mouseY, renderer, font);
         }
@@ -384,7 +377,9 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
 }
 
 void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,
-                         const Galaxy &galaxy) {
+                         const Galaxy &galaxy, vector<Empire *> &empires,
+             unordered_map<const Empire *, SDL_Color> &empireColors,
+             unordered_map<int, SDL_Color> &systemColors) {
     if (!hoveredSystem) {
         return;
     }
@@ -397,17 +392,47 @@ void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,
         selectedSystem = nullptr;
     } else {
         // Проверяем что системы соседи
+
         vector<System *> neighbors = getNeighbors(selectedSystem, galaxy);
-        if (find(neighbors.begin(), neighbors.end(), hoveredSystem) !=
-            neighbors.end()) {
-            // Переводим силу
-            int transferAmount = selectedSystem->getPower();
-            if (transferAmount > 0) {
-                selectedSystem->setPower(selectedSystem->getPower() -
-                                         transferAmount);
-                hoveredSystem->setPower(hoveredSystem->getPower() +
-                                        transferAmount);
+
+        bool isNeighbor = false;
+        for (System *neighbor : neighbors) {
+            if (neighbor->getId() == hoveredSystem->getId()) {
+                isNeighbor = true;
+                break;
             }
+        }
+
+        if (!isNeighbor) {
+            return;
+        }
+
+        int transferAmount = selectedSystem->getPower();
+        int targetAmount = hoveredSystem->getPower();
+
+        // Переводим силу
+        
+        if (transferAmount > 0) {
+            selectedSystem->setPower(selectedSystem->getPower() -
+                                     transferAmount);
+            hoveredSystem->setPower(targetAmount + transferAmount);
+        }
+
+        Empire *empire = nullptr;   
+        SDL_Color empireColor = systemColors[selectedSystem->getId()];
+        if (isOwned(empireColor)) {
+            for (Empire *other : empires) {
+                if (isSameColor(empireColors[other], empireColor)) {
+                    empire = other;
+                    break;
+                }
+            }
+        }
+
+        if (empire && !(isSameColor(systemColors[selectedSystem->getId()],
+            systemColors[hoveredSystem->getId()])) && transferAmount > targetAmount) {
+            hoveredSystem->setPower(transferAmount - targetAmount);
+            conquer(*hoveredSystem, empire, empires, empireColors, systemColors, galaxy);
         }
         // Отменяем выбор
         selectedSystem = nullptr;
@@ -428,7 +453,6 @@ void generateEmpire(vector<Empire *> &empires, Galaxy &galaxy) {
     MapPoint location = empire->getSystems()[0]->getLocation();
 
     if (empire) {
-        cout << location.x << " " << location.y << endl;
         empires.push_back(empire);
     }
 }
