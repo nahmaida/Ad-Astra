@@ -40,6 +40,14 @@ void drawSystemHover(System *hoveredSystem, int mouseX, int mouseY,
 
 void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires);
 
+void handlePowerUpdate(
+    std::vector<System> &systems,
+    std::unordered_map<int, SDL_Color> &systemColors,
+    std::vector<std::pair<System *, System *>> &powerTransfers,
+    const Galaxy &galaxy, std::vector<Empire *> &empires,
+    std::unordered_map<const Empire *, SDL_Color> &empireColors,
+    Uint32 &lastPowerUpdate);
+
 void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,
                          const Galaxy &galaxy, vector<Empire *> &empires,
              unordered_map<const Empire *, SDL_Color> &empireColors,

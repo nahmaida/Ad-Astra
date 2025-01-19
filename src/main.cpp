@@ -1,5 +1,7 @@
 #include "../include/main.h"
 
+#include "main.h"
+
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 800;
 const int FONT_SIZE = 22;
@@ -29,6 +31,170 @@ int main(int argc, char *args[]) {
     }
 
     return 0;
+}
+
+void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
+    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+        cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError()
+             << endl;
+        return;
+    }
+
+    SDL_Window *window = SDL_CreateWindow("Ad Astra!", SDL_WINDOWPOS_CENTERED,
+                                          SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH,
+                                          SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+    if (!window) {
+        cerr << "Window could not be created! SDL_Error: " << SDL_GetError()
+             << endl;
+        SDL_Quit();
+        return;
+    }
+
+    if (TTF_Init() == -1) {
+        cerr << "SDL_ttf could not initialize! SDL_ttf Error: "
+             << TTF_GetError() << endl;
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return;
+    }
+
+    SDL_Renderer *renderer =
+        SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
+    if (!renderer) {
+        cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError()
+             << endl;
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return;
+    }
+
+    vector<System> systems = galaxy.getSystems();
+    const auto &connections = galaxy.getConnections();
+
+    TTF_Font *font = TTF_OpenFont(
+        "/home/nahmaida/Ad-Astra/res/bytebounce_medium.ttf", FONT_SIZE);
+    if (!font) {
+        cerr << "Failed to load font: " << TTF_GetError() << endl;
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        TTF_Quit();
+        SDL_Quit();
+        return;
+    }
+
+    bool quit = false;
+    SDL_Event e;
+    System *hoveredSystem = nullptr;
+    System *selectedSystem = nullptr;
+
+    vector<pair<System *, System *>> powerTransfers = {};
+    unordered_map<const Empire *, SDL_Color> empireColors;
+    random_device rd;
+    mt19937 rng(rd());
+    uniform_int_distribution<int> dist(50, 255);
+
+    for (const Empire *empire : empires) {
+        empireColors[empire] = SDL_Color{static_cast<Uint8>(dist(rng)),
+                                         static_cast<Uint8>(dist(rng)),
+                                         static_cast<Uint8>(dist(rng)), 255};
+    }
+
+    // Задержка для силы
+    Uint32 lastPowerUpdate = SDL_GetTicks();
+    const Uint32 powerUpdateInterval = DELAY;  // 2000 ms
+
+    // 30 FPS
+    const Uint32 frameDelay = 1000 / FPS;  // ~33 ms
+    Uint32 frameStart, frameTime;
+
+    Uint32 lastConquerUpdate = SDL_GetTicks();
+    const Uint32 conquerUpdateInterval = 2000;  // 2000 ms
+
+    while (!quit) {
+        frameStart = SDL_GetTicks();
+
+        unordered_map<int, SDL_Color> systemColors =
+            getSystemColors(systems, empires, empireColors);
+
+        int mouseX, mouseY;
+        SDL_GetMouseState(&mouseX, &mouseY);
+        hoveredSystem = nullptr;
+
+        // Проверка на наведенный объект
+        for (System &system : systems) {
+            MapPoint location = system.getLocation();
+            int starX = location.x * CELL_SIZE;
+            int starY = location.y * CELL_SIZE;
+
+            SDL_Rect rect = {starX - CELL_SIZE / 2, starY - CELL_SIZE / 2,
+                             CELL_SIZE, CELL_SIZE};
+            if (mouseX >= rect.x && mouseX < rect.x + rect.w &&
+                mouseY >= rect.y && mouseY < rect.y + rect.h) {
+                hoveredSystem = &system;
+                break;
+            }
+        }
+
+        // Обработка событий
+        while (SDL_PollEvent(&e) != 0) {
+            if (e.type == SDL_QUIT) {
+                quit = true;
+            } else if (e.type == SDL_MOUSEBUTTONDOWN &&
+                       e.button.button == SDL_BUTTON_LEFT) {
+                handlePowerTransfer(hoveredSystem, selectedSystem, galaxy,
+                                    empires, empireColors, systemColors,
+                                    powerTransfers);
+            }
+        }
+
+        // Обновление силы
+        if (SDL_GetTicks() - lastPowerUpdate >= powerUpdateInterval) {
+            handlePowerUpdate(systems, systemColors, powerTransfers, galaxy,
+                              empires, empireColors, lastPowerUpdate);
+        }
+
+        // Обновление захвата случайных соседей
+        if (SDL_GetTicks() - lastConquerUpdate >= conquerUpdateInterval) {
+            conquerRandomNeighbor(empires, galaxy, empireColors, systemColors);
+            lastConquerUpdate = SDL_GetTicks();
+        }
+
+        // Отображение
+        SDL_SetRenderDrawColor(renderer, 30, 30, 46, 255);
+        SDL_RenderClear(renderer);
+
+        SDL_SetRenderDrawColor(renderer, 205, 214, 244, 255);
+        for (const Line &line : connections) {
+            SDL_RenderDrawLine(renderer, line.start.x * CELL_SIZE,
+                               line.start.y * CELL_SIZE, line.end.x * CELL_SIZE,
+                               line.end.y * CELL_SIZE);
+        }
+
+        drawPowerTransferArrows(renderer, powerTransfers);
+
+        for (const System &system : systems) {
+            drawSystem(system, CELL_SIZE, hoveredSystem, HOVER_SIZE, renderer,
+                       systemColors, font);
+        }
+
+        if (hoveredSystem) {
+            drawSystemHover(hoveredSystem, mouseX, mouseY, renderer, font);
+        }
+
+        SDL_RenderPresent(renderer);
+
+        // Ограничение кадровой частоты
+        frameTime = SDL_GetTicks() - frameStart;
+        if (frameDelay > frameTime) {
+            SDL_Delay(frameDelay - frameTime);
+        }
+    }
+
+    TTF_CloseFont(font);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(window);
+    TTF_Quit();
+    SDL_Quit();
 }
 
 void conquer(System &system, Empire *empire, vector<Empire *> &empires,
@@ -218,184 +384,30 @@ void drawSystemHover(System *hoveredSystem, int mouseX, int mouseY,
     renderSystemInfo(font, hoveredSystem, renderer, infoBox, planets);
 }
 
-void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError()
-             << endl;
-        return;
+void handlePowerUpdate(
+    vector<System> &systems,
+    unordered_map<int, SDL_Color> &systemColors,
+    vector<pair<System *, System *>> &powerTransfers,
+    const Galaxy &galaxy, vector<Empire *> &empires,
+    unordered_map<const Empire *, SDL_Color> &empireColors,
+    Uint32 &lastPowerUpdate) {
+    for (System &system : systems) {
+        updatePower(systemColors, system);
     }
 
-    SDL_Window *window = SDL_CreateWindow("Ad Astra!", SDL_WINDOWPOS_CENTERED,
-                                          SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH,
-                                          SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
-    if (!window) {
-        cerr << "Window could not be created! SDL_Error: " << SDL_GetError()
-             << endl;
-        SDL_Quit();
-        return;
-    }
+    for (pair<System *, System *> &powerTransfer : powerTransfers) {
+        System *from = powerTransfer.first;
+        System *to = powerTransfer.second;
 
-    if (TTF_Init() == -1) {
-        cerr << "SDL_ttf could not initialize! SDL_ttf Error: "
-             << TTF_GetError() << endl;
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return;
-    }
-
-    SDL_Renderer *renderer =
-        SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-    if (!renderer) {
-        cerr << "Renderer could not be created! SDL_Error: " << SDL_GetError()
-             << endl;
-        SDL_DestroyWindow(window);
-        SDL_Quit();
-        return;
-    }
-
-    vector<System> systems = galaxy.getSystems();
-    const auto &connections = galaxy.getConnections();
-
-    TTF_Font *font = TTF_OpenFont(
-        "/home/nahmaida/Ad-Astra/res/bytebounce_medium.ttf", FONT_SIZE);
-    if (!font) {
-        cerr << "Failed to load font: " << TTF_GetError() << endl;
-        SDL_DestroyRenderer(renderer);
-        SDL_DestroyWindow(window);
-        TTF_Quit();
-        SDL_Quit();
-        return;
-    }
-
-    bool quit = false;
-    SDL_Event e;
-    System *hoveredSystem = nullptr;
-    System *selectedSystem = nullptr;
-
-    vector<pair<System *, System *>> powerTransfers = {};
-    unordered_map<const Empire *, SDL_Color> empireColors;
-    random_device rd;
-    mt19937 rng(rd());
-    uniform_int_distribution<int> dist(50, 255);
-
-    for (const Empire *empire : empires) {
-        empireColors[empire] = SDL_Color{static_cast<Uint8>(dist(rng)),
-                                         static_cast<Uint8>(dist(rng)),
-                                         static_cast<Uint8>(dist(rng)), 255};
-    }
-
-    // Задержка для силы
-    Uint32 lastPowerUpdate = SDL_GetTicks();
-    const Uint32 powerUpdateInterval = DELAY;  // 2000 ms
-
-    // 30 FPS
-    const Uint32 frameDelay = 1000 / FPS;  // ~33 ms
-    Uint32 frameStart, frameTime;
-
-    Uint32 lastConquerUpdate = SDL_GetTicks();
-    const Uint32 conquerUpdateInterval = 2000;  // 2000 ms
-
-    while (!quit) {
-        frameStart = SDL_GetTicks();
-
-        unordered_map<int, SDL_Color> systemColors =
-            getSystemColors(systems, empires, empireColors);
-
-        int mouseX, mouseY;
-        SDL_GetMouseState(&mouseX, &mouseY);
-        hoveredSystem = nullptr;
-
-        // Проверка на наведенный объект
-        for (System &system : systems) {
-            MapPoint location = system.getLocation();
-            int starX = location.x * CELL_SIZE;
-            int starY = location.y * CELL_SIZE;
-
-            SDL_Rect rect = {starX - CELL_SIZE / 2, starY - CELL_SIZE / 2,
-                             CELL_SIZE, CELL_SIZE};
-            if (mouseX >= rect.x && mouseX < rect.x + rect.w &&
-                mouseY >= rect.y && mouseY < rect.y + rect.h) {
-                hoveredSystem = &system;
-                break;
-            }
-        }
-
-        // Обработка событий
-        while (SDL_PollEvent(&e) != 0) {
-            if (e.type == SDL_QUIT) {
-                quit = true;
-            } else if (e.type == SDL_MOUSEBUTTONDOWN &&
-                       e.button.button == SDL_BUTTON_LEFT) {
-                handlePowerTransfer(hoveredSystem, selectedSystem, galaxy,
-                                    empires, empireColors, systemColors,
-                                    powerTransfers);
-            }
-        }
-
-        // Обновление силы
-        if (SDL_GetTicks() - lastPowerUpdate >= powerUpdateInterval) {
-            for (System &system : systems) {
-                updatePower(systemColors, system);
-            }
-
-            for (pair<System *, System *> &powerTransfer : powerTransfers) {
-                System *from = powerTransfer.first;
-                System *to = powerTransfer.second;
-
-                if (from && to) {
-                    SDL_Color empireColor = systemColors[from->getId()];
-                    transferPower(from, to, galaxy, empires, empireColors,
-                                  systemColors, empireColor);
-                }
-            }
-
-            lastPowerUpdate = SDL_GetTicks();
-        }
-
-        // Обновление захвата случайных соседей
-        if (SDL_GetTicks() - lastConquerUpdate >= conquerUpdateInterval) {
-            conquerRandomNeighbor(empires, galaxy, empireColors, systemColors);
-            lastConquerUpdate = SDL_GetTicks();
-        }
-
-        // Отображение
-        SDL_SetRenderDrawColor(renderer, 30, 30, 46, 255);
-        SDL_RenderClear(renderer);
-
-        SDL_SetRenderDrawColor(renderer, 205, 214, 244, 255);
-        for (const Line &line : connections) {
-            SDL_RenderDrawLine(renderer, line.start.x * CELL_SIZE,
-                               line.start.y * CELL_SIZE, line.end.x * CELL_SIZE,
-                               line.end.y * CELL_SIZE);
-        }
-
-        drawPowerTransferArrows(renderer, powerTransfers);
-
-        for (const System &system : systems) {
-            drawSystem(system, CELL_SIZE, hoveredSystem, HOVER_SIZE, renderer,
-                       systemColors, font);
-        }
-
-        if (hoveredSystem) {
-            drawSystemHover(hoveredSystem, mouseX, mouseY, renderer, font);
-        }
-
-        SDL_RenderPresent(renderer);
-
-        // Ограничение кадровой частоты
-        frameTime = SDL_GetTicks() - frameStart;
-        if (frameDelay > frameTime) {
-            SDL_Delay(frameDelay - frameTime);
+        if (from && to) {
+            SDL_Color empireColor = systemColors[from->getId()];
+            transferPower(from, to, galaxy, empires, empireColors, systemColors,
+                          empireColor);
         }
     }
 
-    TTF_CloseFont(font);
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
-    TTF_Quit();
-    SDL_Quit();
+    lastPowerUpdate = SDL_GetTicks();
 }
-
 void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,
                          const Galaxy &galaxy, vector<Empire *> &empires,
                          unordered_map<const Empire *, SDL_Color> &empireColors,
@@ -472,10 +484,10 @@ void drawPowerTransferArrows(SDL_Renderer *renderer,
         int endX = targetLocation.x * CELL_SIZE;
         int endY = targetLocation.y * CELL_SIZE;
 
-        // Draw line indicating the power transfer
+        // Рмсуем линию
         SDL_RenderDrawLine(renderer, startX, startY, endX, endY);
 
-        // Draw an arrowhead at the target system
+        // Рисуем наконечник стрелки
         int arrowSize = 10;
         int arrowAngle = 45;
 
