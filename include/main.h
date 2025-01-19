@@ -43,7 +43,13 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires);
 void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,
                          const Galaxy &galaxy, vector<Empire *> &empires,
              unordered_map<const Empire *, SDL_Color> &empireColors,
-             unordered_map<int, SDL_Color> &systemColors);
+             unordered_map<int, SDL_Color> &systemColors, vector<pair<System*, System*>> &powerTransfers);
+
+void transferPower(System *&from, System *&to, const Galaxy &galaxy, vector<Empire *> &empires,
+                         unordered_map<const Empire *, SDL_Color> &empireColors,
+                         unordered_map<int, SDL_Color> &systemColors, SDL_Color &empireColor);
+
+void drawPowerTransferArrows(SDL_Renderer *renderer, vector<pair<System*, System*>> &powerTransfers);
 
 void generateEmpire(vector<Empire *> &empires, Galaxy &galaxy);
 
