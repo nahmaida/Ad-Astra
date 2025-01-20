@@ -15,7 +15,7 @@
 #include "../include/map.h"
 
 void conquer(System &system, Empire *empire, vector<Empire *> &empires,
-             unordered_map<const Empire *, SDL_Color> empireColors,
+             unordered_map<const Empire *, SDL_Color> &empireColors,
              unordered_map<int, SDL_Color> &systemColors, Galaxy galaxy);
 
 bool isOwned(SDL_Color color);
@@ -64,6 +64,6 @@ void generateEmpire(vector<Empire *> &empires, Galaxy &galaxy);
 void conquerRandomNeighbor(
     vector<Empire *> &empires, const Galaxy &galaxy,
     unordered_map<const Empire *, SDL_Color> &empireColors,
-    unordered_map<int, SDL_Color> &systemColors);
+    unordered_map<int, SDL_Color> &systemColors, vector<pair<System *, System *>> &powerTransfers);
 
 #endif  // MAIN_H

@@ -18,7 +18,7 @@ class Empire {
     string getName() const;
     habitableType getPreferredType() const;
     vector<System*> getSystems() const;
-    void fill(Galaxy galaxy);
+    void fill(Galaxy &galaxy);
     void addSystem(System* system);
     Empire& operator=(const Empire& other);
     ~Empire();

@@ -131,22 +131,19 @@ class Galaxy {
 
     void connectSystems();
     void drawLine(vector<vector<string>>& map, MapPoint start, MapPoint end) const;
-    void generateMap();
 
    public:
     Galaxy(int size);
     void fill();
-    void printMap() const;
     vector<System> getSystems() const;
     vector<Line> getConnections() const;
-    string getMap() const;
     int getSize() const;
 };
 
 // функции
 void loadStarnames(string filename);
 vector<MapPoint> sunflower(int n, int alpha = 0, bool geodesic = false);
-vector<Resources> addResources(vector<Resources> one, vector<Resources> two);
+vector<Resources> addResources(vector<Resources> &one, vector<Resources> &two);
 vector<System*> getNeighbors(System* targetSystem, const Galaxy &galaxy);
 
 #endif  // MAP_H

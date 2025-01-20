@@ -56,7 +56,7 @@ vector<MapPoint> sunflower(int n, int alpha, bool geodesic) {
 }
 
 // прибавляет вместе ресурсы двух тел
-vector<Resources> addResources(vector<Resources> one, vector<Resources> two) {
+vector<Resources> addResources(vector<Resources> &one, vector<Resources> &two) {
     for (int j = 0; j < two.size(); j++) {
         bool found = false;
         for (int i = 0; i < one.size(); i++) {
@@ -134,7 +134,8 @@ void System::fill() {
         planet->fill();
 
         // добавляет ресурсы планеты к системе
-        resources = addResources(resources, planet->getResources());
+        vector<Resources> planetResources = planet->getResources();
+        resources = addResources(resources, planetResources);
         planets.push_back(*planet);
 
         delete planet;  // очищаем память
@@ -249,18 +250,20 @@ vector<System*> getNeighbors(System* targetSystem, const Galaxy& galaxy) {
     for (Line connection : galaxy.getConnections()) {
         if (connection.start.x == location.x &&
             connection.start.y == location.y) {
-            for (System& system : galaxy.getSystems()) { // Use reference here
+            for (System& system : galaxy.getSystems()) {
                 if (connection.end.x == system.getLocation().x &&
                     connection.end.y == system.getLocation().y) {
-                    neighbors.push_back(&system); // Store pointer to valid object
+                    neighbors.push_back(
+                        &system);
                 }
             }
         } else if (connection.end.x == location.x &&
                    connection.end.y == location.y) {
-            for (System& system : galaxy.getSystems()) { // Use reference here
+            for (System& system : galaxy.getSystems()) {
                 if (connection.start.x == system.getLocation().x &&
                     connection.start.y == system.getLocation().y) {
-                    neighbors.push_back(&system); // Store pointer to valid object
+                    neighbors.push_back(
+                        &system);
                 }
             }
         }

@@ -47,22 +47,27 @@ vector<System *> Empire::getSystems() const { return this->systems; }
 void Empire::addSystem(System *system) { this->systems.push_back(system); }
 
 // Заполнение данных империи
-void Empire::fill(Galaxy galaxy) {
+void Empire::fill(Galaxy &galaxy) {
     vector<System> gsystems = galaxy.getSystems();
-    while (this->systems.empty()) {
-        // Находим систему с обитаемыми планетами
-        int systemIndex = rand() % gsystems.size();
-        if (gsystems[systemIndex].hasHabitables()) {
-            this->systems.push_back(&gsystems[systemIndex]);
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(gsystems.begin(), gsystems.end(), g);
+
+    // Находим систему с обитаемыми планетами
+    for (System &system : gsystems) {
+        if (system.hasHabitables()) {
+            this->systems.push_back(&system);
             break;
         }
     }
 
     // Устанавливаем предпочтительный тип планеты
-    for (Planet &planet : this->systems[0]->getPlanets()) {
-        if (planet.isHabitable()) {
-            this->preferredType = planet.getType();
-            break;
+    if (!this->systems.empty()) {
+        for (Planet &planet : this->systems[0]->getPlanets()) {
+            if (planet.isHabitable()) {
+                this->preferredType = planet.getType();
+                break;
+            }
         }
     }
 

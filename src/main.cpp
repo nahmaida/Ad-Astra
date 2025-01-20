@@ -155,7 +155,8 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
 
         // Обновление захвата случайных соседей
         if (SDL_GetTicks() - lastConquerUpdate >= conquerUpdateInterval) {
-            conquerRandomNeighbor(empires, galaxy, empireColors, systemColors);
+            conquerRandomNeighbor(empires, galaxy, empireColors, systemColors,
+                                  powerTransfers);
             lastConquerUpdate = SDL_GetTicks();
         }
 
@@ -198,7 +199,7 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
 }
 
 void conquer(System &system, Empire *empire, vector<Empire *> &empires,
-             unordered_map<const Empire *, SDL_Color> empireColors,
+             unordered_map<const Empire *, SDL_Color> &empireColors,
              unordered_map<int, SDL_Color> &systemColors, Galaxy galaxy) {
     systemColors[system.getId()] = empireColors[empire];
     empire->addSystem(&system);
@@ -220,15 +221,16 @@ bool isOwned(SDL_Color color) {
 }
 
 void updatePower(unordered_map<int, SDL_Color> &systemColors, System &system) {
-    if (isOwned(systemColors[system.getId()])) {
-        system.setPower(system.getPower() + 1);
-        if (system.hasHabitables()) {
-            int revenue = 0;
-            for (const Resources &resource : system.getResources()) {
-                revenue += resource.getPrice();
-            }
-            system.setPower(system.getPower() + revenue);
+    if (!isOwned(systemColors[system.getId()])) {
+        return;
+    }
+    system.setPower(system.getPower() + 1);
+    if (system.hasHabitables()) {
+        int revenue = 0;
+        for (const Resources &resource : system.getResources()) {
+            revenue += resource.getPrice();
         }
+        system.setPower(system.getPower() + revenue);
     }
 }
 
@@ -237,7 +239,8 @@ void updatePower(unordered_map<int, SDL_Color> &systemColors, System &system) {
 void conquerRandomNeighbor(
     vector<Empire *> &empires, const Galaxy &galaxy,
     unordered_map<const Empire *, SDL_Color> &empireColors,
-    unordered_map<int, SDL_Color> &systemColors) {
+    unordered_map<int, SDL_Color> &systemColors,
+    vector<pair<System *, System *>> &powerTransfers) {
     random_device rd;
     mt19937 rng(rd());
     uniform_int_distribution<int> dist(0, 100);  // диапазон случайных чисел
@@ -246,11 +249,16 @@ void conquerRandomNeighbor(
         vector<System *> systems = empire->getSystems();
         System *system = systems[dist(rng) % systems.size()];
         vector<System *> neighbors = getNeighbors(system, galaxy);
-        if (!neighbors.empty()) {
-            // Выбираем случайного соседа
-            System *randomNeighbor = neighbors[dist(rng) % neighbors.size()];
-            conquer(*randomNeighbor, empire, empires, empireColors,
-                    systemColors, galaxy);
+        if (neighbors.empty()) {
+            return;
+        }
+
+        // Выбираем случайного соседа
+        System *randomNeighbor = neighbors[dist(rng) % neighbors.size()];
+
+        if (system && randomNeighbor) {
+            handlePowerTransfer(system, randomNeighbor, galaxy, empires,
+                                empireColors, systemColors, powerTransfers);
         }
     }
 }
@@ -384,13 +392,12 @@ void drawSystemHover(System *hoveredSystem, int mouseX, int mouseY,
     renderSystemInfo(font, hoveredSystem, renderer, infoBox, planets);
 }
 
-void handlePowerUpdate(
-    vector<System> &systems,
-    unordered_map<int, SDL_Color> &systemColors,
-    vector<pair<System *, System *>> &powerTransfers,
-    const Galaxy &galaxy, vector<Empire *> &empires,
-    unordered_map<const Empire *, SDL_Color> &empireColors,
-    Uint32 &lastPowerUpdate) {
+void handlePowerUpdate(vector<System> &systems,
+                       unordered_map<int, SDL_Color> &systemColors,
+                       vector<pair<System *, System *>> &powerTransfers,
+                       const Galaxy &galaxy, vector<Empire *> &empires,
+                       unordered_map<const Empire *, SDL_Color> &empireColors,
+                       Uint32 &lastPowerUpdate) {
     for (System &system : systems) {
         updatePower(systemColors, system);
     }
@@ -408,6 +415,7 @@ void handlePowerUpdate(
 
     lastPowerUpdate = SDL_GetTicks();
 }
+
 void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,
                          const Galaxy &galaxy, vector<Empire *> &empires,
                          unordered_map<const Empire *, SDL_Color> &empireColors,
@@ -515,11 +523,14 @@ void generateEmpire(vector<Empire *> &empires, Galaxy &galaxy) {
             break;
         }
     }
-    MapPoint location = empire->getSystems()[0]->getLocation();
 
-    if (empire) {
-        empires.push_back(empire);
+    if (!empire || !empire->getSystems()[0]) {
+        delete empire;
+        empire = nullptr;
+        return;
     }
+    
+    empires.push_back(empire);
 }
 
 void transferPower(System *&from, System *&to, const Galaxy &galaxy,
