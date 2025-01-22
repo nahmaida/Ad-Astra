@@ -56,7 +56,7 @@ vector<MapPoint> sunflower(int n, int alpha, bool geodesic) {
 }
 
 // прибавляет вместе ресурсы двух тел
-vector<Resources> addResources(vector<Resources> &one, vector<Resources> &two) {
+vector<Resources> addResources(vector<Resources>& one, vector<Resources>& two) {
     for (int j = 0; j < two.size(); j++) {
         bool found = false;
         for (int i = 0; i < one.size(); i++) {
@@ -195,8 +195,11 @@ int Galaxy::getSize() const { return size; }
 void Galaxy::connectSystems() {
     set<pair<int, int>>
         addedConnections;  // чтобы избежать дублирования соединений
-    const int connectionRadius =
-        10;  // максимальная дистанция для поиска соседей
+    float connectionRadius = 10;  // максимальная дистанция для поиска соседей
+    if (size < 100) {
+        connectionRadius = 10.0f / (size / 100.0f);
+    }
+
     random_device rd;
     mt19937 rng(rd());  // генератор случайных чисел
 
@@ -253,8 +256,7 @@ vector<System*> getNeighbors(System* targetSystem, const Galaxy& galaxy) {
             for (System& system : galaxy.getSystems()) {
                 if (connection.end.x == system.getLocation().x &&
                     connection.end.y == system.getLocation().y) {
-                    neighbors.push_back(
-                        &system);
+                    neighbors.push_back(&system);
                 }
             }
         } else if (connection.end.x == location.x &&
@@ -262,8 +264,7 @@ vector<System*> getNeighbors(System* targetSystem, const Galaxy& galaxy) {
             for (System& system : galaxy.getSystems()) {
                 if (connection.start.x == system.getLocation().x &&
                     connection.start.y == system.getLocation().y) {
-                    neighbors.push_back(
-                        &system);
+                    neighbors.push_back(&system);
                 }
             }
         }
