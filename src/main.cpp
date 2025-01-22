@@ -5,11 +5,12 @@
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 800;
 const int FONT_SIZE = 22;
-const int DELAY = 2000;  // Интервал обновления силы (в миллисекундах)
+const int DELAY = 5000;  // Интервал обновления силы (в миллисекундах)
 const int FPS = 30;
 const int CELL_SIZE = 8;
 const int HOVER_SIZE = 12;
 float difficulty = 1;
+Empire *selectedEmpire = nullptr;
 
 int main(int argc, char *args[]) {
     mt19937 rng(random_device{}());
@@ -150,6 +151,9 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires,
     System *selectedSystem = nullptr;
     Empire *victorsNation = nullptr;
 
+    bool quitWelcomeScreen = false;
+    bool empireSelected = false;
+
     vector<pair<System *, System *>> powerTransfers = {};
     unordered_map<const Empire *, SDL_Color> empireColors;
 
@@ -171,6 +175,10 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires,
 
     Uint32 lastConquerUpdate = SDL_GetTicks();
     const Uint32 conquerUpdateInterval = DELAY;  // 2000 ms
+
+    while (!quitWelcomeScreen) {
+        renderWelcomeScreen(largeFont, renderer, quitWelcomeScreen);
+    }
 
     while (!quit) {
         frameStart = SDL_GetTicks();
@@ -211,20 +219,29 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires,
                 quit = true;
             } else if (e.type == SDL_MOUSEBUTTONDOWN &&
                        e.button.button == SDL_BUTTON_LEFT) {
+                if (!empireSelected) {
+                    handleEmpireSelection(
+                        e, empires,
+                        selectedSystem);  // Выбираем империю
+                    empireSelected = true;
+                }
+
                 handlePowerTransfer(hoveredSystem, selectedSystem, galaxy,
                                     empires, empireColors, systemColors,
-                                    powerTransfers);
+                                    powerTransfers, true);
             }
         }
 
         // Обновление силы
-        if (SDL_GetTicks() - lastPowerUpdate >= powerUpdateInterval) {
+        if (empireSelected &&
+            SDL_GetTicks() - lastPowerUpdate >= powerUpdateInterval) {
             handlePowerUpdate(systems, systemColors, powerTransfers, galaxy,
                               empires, empireColors, lastPowerUpdate);
         }
 
         // Обновление захвата случайных соседей
-        if (SDL_GetTicks() - lastConquerUpdate >= conquerUpdateInterval) {
+        if (empireSelected &&
+            SDL_GetTicks() - lastConquerUpdate >= conquerUpdateInterval) {
             conquerRandomNeighbor(empires, galaxy, empireColors, systemColors,
                                   powerTransfers, rng);
             lastConquerUpdate = SDL_GetTicks();
@@ -324,6 +341,11 @@ void conquerRandomNeighbor(
     uniform_int_distribution<int> dist(0, 100);  // диапазон случайных чисел
 
     for (Empire *empire : empires) {
+        // Пропускаем игрока
+        if (empire == selectedEmpire) {
+            continue;
+        }
+
         vector<System *> systems = empire->getSystems();
 
         if (systems.empty()) {
@@ -353,7 +375,8 @@ void conquerRandomNeighbor(
 
         if (system && randomNeighbor) {
             handlePowerTransfer(randomNeighbor, system, galaxy, empires,
-                                empireColors, systemColors, powerTransfers);
+                                empireColors, systemColors, powerTransfers,
+                                false);
         }
     }
 }
@@ -382,43 +405,101 @@ bool checkVictory(const vector<System *> &systems, vector<Empire *> &empires,
     return true;
 }
 
-void renderWelcomeScreen(TTF_Font *font, SDL_Renderer *renderer) {
+void renderWelcomeScreen(TTF_Font *font, SDL_Renderer *renderer,
+                         bool &quitWelcomeScreen) {
     SDL_Color textColor = {205, 214, 244, 255};
-    SDL_Color buttonColor = {75, 105, 255, 255};  // Blue button color
+    SDL_Color buttonColor = {166, 227, 161, 255};
     SDL_Color darkTextColor = {30, 30, 46, 255};
 
     SDL_Surface *surface;
     SDL_Texture *texture;
 
-    // Create the welcome message
-    surface = TTF_RenderText_Solid(font, "Welcome! Select an empire to start", textColor);
+    SDL_SetRenderDrawColor(renderer, 30, 30, 46, 255);
+    SDL_RenderClear(renderer);
+
+    // Текст приветствия
+    surface = TTF_RenderText_Solid(font, "Welcome! Select an empire to start",
+                                   textColor);
     texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_Rect messageRect = {SCREEN_WIDTH / 2 - surface->w / 2, SCREEN_HEIGHT / 2 - 50, surface->w, surface->h};
+    SDL_Rect messageRect = {SCREEN_WIDTH / 2 - surface->w / 2,
+                            SCREEN_HEIGHT / 2 - 50, surface->w, surface->h};
     SDL_RenderCopy(renderer, texture, nullptr, &messageRect);
     SDL_FreeSurface(surface);
     SDL_DestroyTexture(texture);
 
-    // Create the "Okay" button
-    SDL_Rect buttonRect = {SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 + 20, 100, 40};
-    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
+    // Кнока ОК
+    SDL_Rect buttonRect = {SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 + 20, 100,
+                           40};
+    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g,
+                           buttonColor.b, buttonColor.a);
     SDL_RenderFillRect(renderer, &buttonRect);
-    SDL_SetRenderDrawColor(renderer, darkTextColor.r, darkTextColor.g, darkTextColor.b, darkTextColor.a);
+    SDL_SetRenderDrawColor(renderer, textColor.r, textColor.g,
+                           textColor.b, textColor.a);
     SDL_RenderDrawRect(renderer, &buttonRect);
 
-    // Add "Okay" text to the button
+    // Текст кнопки
     surface = TTF_RenderText_Solid(font, "Okay", darkTextColor);
     texture = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_Rect buttonTextRect = {buttonRect.x + 10, buttonRect.y + 10, surface->w, surface->h};
+    SDL_Rect buttonTextRect = {buttonRect.x + 10, buttonRect.y + 10, surface->w,
+                               surface->h};
     SDL_RenderCopy(renderer, texture, nullptr, &buttonTextRect);
     SDL_FreeSurface(surface);
     SDL_DestroyTexture(texture);
 
     SDL_RenderPresent(renderer);
+
+    // Ждем нажатия
+    bool quit = false;
+    SDL_Event e;
+    while (!quit) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                quit = true;
+            } else if (e.type == SDL_MOUSEBUTTONDOWN &&
+                       e.button.button == SDL_BUTTON_LEFT) {
+                int mouseX = e.button.x;
+                int mouseY = e.button.y;
+                if (mouseX >= buttonRect.x &&
+                    mouseX <= buttonRect.x + buttonRect.w &&
+                    mouseY >= buttonRect.y &&
+                    mouseY <= buttonRect.y + buttonRect.h) {
+                    quitWelcomeScreen = true;
+                    return;
+                }
+            }
+        }
+    }
+}
+
+void handleEmpireSelection(SDL_Event &e, vector<Empire *> &empires,
+                           System *&selectedSystem) {
+    if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
+        int mouseX = e.button.x;
+        int mouseY = e.button.y;
+
+        // Ищем империю владельца
+        for (Empire *empire : empires) {
+            System *empireSystem =
+                empire->getSystems()[0];
+            MapPoint location = empireSystem->getLocation();
+            int systemX = location.x * CELL_SIZE;
+            int systemY = location.y * CELL_SIZE;
+            int systemRadius = CELL_SIZE / 2;
+
+            // Проверяем, попали ли в радиус системы
+            if (abs(mouseX - systemX) < systemRadius &&
+                abs(mouseY - systemY) < systemRadius) {
+                selectedEmpire = empire;
+                selectedSystem = empireSystem;
+                return;
+            }
+        }
+    }
 }
 
 // Окно победы (шрифт не работает на русском)
-void renderVictoryScreen(SDL_Renderer *renderer, TTF_Font *font, TTF_Font* largeFont,
-                         const string &winnerName) {
+void renderVictoryScreen(SDL_Renderer *renderer, TTF_Font *font,
+                         TTF_Font *largeFont, const string &winnerName) {
     const int VICTORY_BOX_WIDTH = 400;
     const int VICTORY_BOX_HEIGHT = 200;
     const SDL_Color bgColor = {69, 71, 90, 255};
@@ -666,7 +747,8 @@ void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,
                          const Galaxy &galaxy, vector<Empire *> &empires,
                          unordered_map<const Empire *, SDL_Color> &empireColors,
                          unordered_map<int, SDL_Color> &systemColors,
-                         vector<pair<System *, System *>> &powerTransfers) {
+                         vector<pair<System *, System *>> &powerTransfers,
+                         bool isPlayerClick) {
     if (!hoveredSystem) {
         return;
     }
@@ -678,6 +760,13 @@ void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,
         // Отменяем выбор
         selectedSystem = nullptr;
     } else {
+        SDL_Color playerColor = empireColors[selectedEmpire];
+        if (isPlayerClick &&
+            !isSameColor(systemColors[selectedSystem->getId()], playerColor)) {
+            selectedSystem = nullptr;
+            return;
+        }
+
         SDL_Color empireColor = systemColors[selectedSystem->getId()];
         if (!isOwned(empireColor)) {
             selectedSystem = nullptr;

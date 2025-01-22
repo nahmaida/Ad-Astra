@@ -28,13 +28,19 @@ void renderSystemInfo(TTF_Font *font, System *selectedSystem,
                       SDL_Renderer *renderer, SDL_Rect &infoBox,
                       const vector<Planet> &planets);
 
+void renderWelcomeScreen(TTF_Font *font, SDL_Renderer *renderer,
+                         bool &quitWelcomeScreen);
+
+void handleEmpireSelection(SDL_Event &e, vector<Empire *> &empires,
+                           System *&selectedSystem);
+
 bool checkVictory(const vector<System *> &systems, vector<Empire *> &empires,
                   Empire *&victoriousEmpire,
                   unordered_map<const Empire *, SDL_Color> &empireColors,
                   unordered_map<int, SDL_Color> &systemColors);
 
 void renderVictoryScreen(SDL_Renderer *renderer, TTF_Font *font,
-                         const string &victoryMessage);
+                         TTF_Font *largeFont, const string &victoryMessage);
 
 unordered_map<int, SDL_Color> getSystemColors(
     const vector<System *> &systems, vector<Empire *> &empires,
@@ -62,7 +68,8 @@ void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,
                          const Galaxy &galaxy, vector<Empire *> &empires,
                          unordered_map<const Empire *, SDL_Color> &empireColors,
                          unordered_map<int, SDL_Color> &systemColors,
-                         vector<pair<System *, System *>> &powerTransfers);
+                         vector<pair<System *, System *>> &powerTransfers,
+                         bool isPlayerClick);
 
 void transferPower(System *&from, System *&to, const Galaxy &galaxy,
                    vector<Empire *> &empires,
