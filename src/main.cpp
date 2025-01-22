@@ -187,6 +187,12 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires,
         unordered_map<int, SDL_Color> systemColors =
             getSystemColors(systems, empires, empireColors);
 
+        // Проверяет поражение
+        if (empireSelected && selectedEmpire->getSystems().empty()) {
+            renderGameOverScreen(renderer, font, largeFont);
+            quit = true;
+        }
+
         // Проверяет победу
         if (checkVictory(systems, empires, victorsNation, empireColors,
                          systemColors)) {
@@ -524,8 +530,101 @@ void renderVictoryScreen(SDL_Renderer *renderer, TTF_Font *font,
                            textColor.a);
     SDL_RenderDrawRect(renderer, &victoryBox);
 
-    string line1 = "An empire has successfully";
+    string line1 = "Your empire has successfully";
     string line2 = "conquered the entire galaxy!";
+    int lineSpacing = 10;  // Пространство между строками
+
+    // Строка 1
+    SDL_Surface *surface =
+        TTF_RenderText_Solid(largeFont, line1.c_str(), textColor);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect textRect1 = {victoryBox.x + 20, victoryBox.y + 40, surface->w,
+                          surface->h};
+    SDL_RenderCopy(renderer, texture, nullptr, &textRect1);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+    // Строка 2
+    surface = TTF_RenderText_Solid(largeFont, line2.c_str(), textColor);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect textRect2 = {victoryBox.x + 20,
+                          textRect1.y + textRect1.h + lineSpacing, surface->w,
+                          surface->h};
+    SDL_RenderCopy(renderer, texture, nullptr, &textRect2);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+    TTF_CloseFont(largeFont);  // Закрываем шрифт
+
+    // Кнопка конца игры
+    SDL_Rect buttonRect = {victoryBox.x + VICTORY_BOX_WIDTH / 2 - 50,
+                           victoryBox.y + VICTORY_BOX_HEIGHT - 60, 100, 40};
+    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g,
+                           buttonColor.b, buttonColor.a);
+    SDL_RenderFillRect(renderer, &buttonRect);
+
+    SDL_SetRenderDrawColor(renderer, textColor.r, textColor.g, textColor.b,
+                           textColor.a);
+    SDL_RenderDrawRect(renderer, &buttonRect);
+
+    // Текст кнопки
+    surface = TTF_RenderText_Solid(font, "End Game", darkTextColor);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect buttonTextRect = {buttonRect.x + 10, buttonRect.y + 10, surface->w,
+                               surface->h};
+    SDL_RenderCopy(renderer, texture, nullptr, &buttonTextRect);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+    SDL_RenderPresent(renderer);
+
+    // Ждем нажатия
+    bool quit = false;
+    SDL_Event e;
+    while (!quit) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                quit = true;
+            } else if (e.type == SDL_MOUSEBUTTONDOWN &&
+                       e.button.button == SDL_BUTTON_LEFT) {
+                int mouseX = e.button.x;
+                int mouseY = e.button.y;
+                if (mouseX >= buttonRect.x &&
+                    mouseX <= buttonRect.x + buttonRect.w &&
+                    mouseY >= buttonRect.y &&
+                    mouseY <= buttonRect.y + buttonRect.h) {
+                    quit = true;
+                }
+            }
+        }
+    }
+}
+
+// Окно поражения (шрифт не работает на русском)
+void renderGameOverScreen(SDL_Renderer *renderer, TTF_Font *font,
+                         TTF_Font *largeFont) {
+    const int VICTORY_BOX_WIDTH = 400;
+    const int VICTORY_BOX_HEIGHT = 200;
+    const SDL_Color bgColor = {69, 71, 90, 255};
+    const SDL_Color textColor = {205, 214, 244, 255};
+    const SDL_Color darkTextColor = {30, 30, 46, 255};
+    const SDL_Color buttonColor = {243, 139, 168, 255};
+
+    SDL_Rect victoryBox = {SCREEN_WIDTH / 2 - VICTORY_BOX_WIDTH / 2,
+                           SCREEN_HEIGHT / 2 - VICTORY_BOX_HEIGHT / 2,
+                           VICTORY_BOX_WIDTH, VICTORY_BOX_HEIGHT};
+
+    // Фон
+    SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b,
+                           bgColor.a);
+    SDL_RenderFillRect(renderer, &victoryBox);
+
+    SDL_SetRenderDrawColor(renderer, textColor.r, textColor.g, textColor.b,
+                           textColor.a);
+    SDL_RenderDrawRect(renderer, &victoryBox);
+
+    string line1 = "You have been defeated!";
+    string line2 = "Your empire is no more.";
     int lineSpacing = 10;  // Пространство между строками
 
     // Строка 1

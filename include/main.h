@@ -31,6 +31,9 @@ void renderSystemInfo(TTF_Font *font, System *selectedSystem,
 void renderWelcomeScreen(TTF_Font *font, SDL_Renderer *renderer,
                          bool &quitWelcomeScreen);
 
+void renderGameOverScreen(SDL_Renderer *renderer, TTF_Font *font,
+                         TTF_Font *largeFont);
+
 void handleEmpireSelection(SDL_Event &e, vector<Empire *> &empires,
                            System *&selectedSystem, unordered_map<const Empire *, SDL_Color> &empireColors);
 
