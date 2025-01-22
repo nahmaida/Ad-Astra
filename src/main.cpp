@@ -132,7 +132,10 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires,
 
     TTF_Font *font = TTF_OpenFont(
         "/home/nahmaida/Ad-Astra/res/bytebounce_medium.ttf", FONT_SIZE);
-    if (!font) {
+    TTF_Font *largeFont =
+        TTF_OpenFont("/home/nahmaida/Ad-Astra/res/bytebounce_medium.ttf",
+                     FONT_SIZE * 1.5);  // Шрифт побольше
+    if (!font || !largeFont) {
         cerr << "Failed to load font: " << TTF_GetError() << endl;
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
@@ -145,6 +148,7 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires,
     SDL_Event e;
     System *hoveredSystem = nullptr;
     System *selectedSystem = nullptr;
+    Empire *victorsNation = nullptr;
 
     vector<pair<System *, System *>> powerTransfers = {};
     unordered_map<const Empire *, SDL_Color> empireColors;
@@ -166,13 +170,21 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires,
     Uint32 frameStart, frameTime;
 
     Uint32 lastConquerUpdate = SDL_GetTicks();
-    const Uint32 conquerUpdateInterval = 2000;  // 2000 ms
+    const Uint32 conquerUpdateInterval = DELAY;  // 2000 ms
 
     while (!quit) {
         frameStart = SDL_GetTicks();
 
         unordered_map<int, SDL_Color> systemColors =
             getSystemColors(systems, empires, empireColors);
+
+        // Проверяет победу
+        if (checkVictory(systems, empires, victorsNation, empireColors,
+                         systemColors)) {
+            string victoryMessage = victorsNation->getName();
+            renderVictoryScreen(renderer, font, largeFont, victoryMessage);
+            quit = true;  // Выходит из игры
+        }
 
         int mouseX, mouseY;
         SDL_GetMouseState(&mouseX, &mouseY);
@@ -263,7 +275,7 @@ void conquer(System *system, Empire *empire, vector<Empire *> &empires,
     SDL_Color color = systemColors[system->getId()];
     Empire *oldEmpire = nullptr;
     if (isOwned(color)) {
-        auto it = find_if(begin(empires), end(empires), [&](const Empire* e) {
+        auto it = find_if(begin(empires), end(empires), [&](const Empire *e) {
             return isSameColor(empireColors[e], color);
         });
         oldEmpire = *it;
@@ -331,8 +343,9 @@ void conquerRandomNeighbor(
         }
 
         // Если есть незахваченая система, выбираем ее
+        SDL_Color color = systemColors[system->getId()];
         for (System *neighbor : neighbors) {
-            if (!isOwned(systemColors[neighbor->getId()])) {
+            if (!isSameColor(color, systemColors[neighbor->getId()])) {
                 randomNeighbor = neighbor;
                 break;
             }
@@ -341,6 +354,157 @@ void conquerRandomNeighbor(
         if (system && randomNeighbor) {
             handlePowerTransfer(randomNeighbor, system, galaxy, empires,
                                 empireColors, systemColors, powerTransfers);
+        }
+    }
+}
+
+// Проверяет, победила ли какая нибудь империя
+bool checkVictory(const vector<System *> &systems, vector<Empire *> &empires,
+                  Empire *&victoriousEmpire,
+                  unordered_map<const Empire *, SDL_Color> &empireColors,
+                  unordered_map<int, SDL_Color> &systemColors) {
+    SDL_Color previousColor = {0, 0, 0, 0};
+    SDL_Color color = {0, 0, 0, 0};
+
+    for (System *system : systems) {
+        color = systemColors[system->getId()];
+        if (!isSameColor(color, previousColor) &&
+            !isSameColor(previousColor, {0, 0, 0, 0})) {
+            return false;
+        }
+        previousColor = color;
+    }
+
+    auto it = find_if(begin(empires), end(empires), [&](const Empire *e) {
+        return isSameColor(empireColors[e], color);
+    });
+    victoriousEmpire = *it;
+    return true;
+}
+
+void renderWelcomeScreen(TTF_Font *font, SDL_Renderer *renderer) {
+    SDL_Color textColor = {205, 214, 244, 255};
+    SDL_Color buttonColor = {75, 105, 255, 255};  // Blue button color
+    SDL_Color darkTextColor = {30, 30, 46, 255};
+
+    SDL_Surface *surface;
+    SDL_Texture *texture;
+
+    // Create the welcome message
+    surface = TTF_RenderText_Solid(font, "Welcome! Select an empire to start", textColor);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect messageRect = {SCREEN_WIDTH / 2 - surface->w / 2, SCREEN_HEIGHT / 2 - 50, surface->w, surface->h};
+    SDL_RenderCopy(renderer, texture, nullptr, &messageRect);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+    // Create the "Okay" button
+    SDL_Rect buttonRect = {SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 + 20, 100, 40};
+    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g, buttonColor.b, buttonColor.a);
+    SDL_RenderFillRect(renderer, &buttonRect);
+    SDL_SetRenderDrawColor(renderer, darkTextColor.r, darkTextColor.g, darkTextColor.b, darkTextColor.a);
+    SDL_RenderDrawRect(renderer, &buttonRect);
+
+    // Add "Okay" text to the button
+    surface = TTF_RenderText_Solid(font, "Okay", darkTextColor);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect buttonTextRect = {buttonRect.x + 10, buttonRect.y + 10, surface->w, surface->h};
+    SDL_RenderCopy(renderer, texture, nullptr, &buttonTextRect);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+    SDL_RenderPresent(renderer);
+}
+
+// Окно победы (шрифт не работает на русском)
+void renderVictoryScreen(SDL_Renderer *renderer, TTF_Font *font, TTF_Font* largeFont,
+                         const string &winnerName) {
+    const int VICTORY_BOX_WIDTH = 400;
+    const int VICTORY_BOX_HEIGHT = 200;
+    const SDL_Color bgColor = {69, 71, 90, 255};
+    const SDL_Color textColor = {205, 214, 244, 255};
+    const SDL_Color darkTextColor = {30, 30, 46, 255};
+    const SDL_Color buttonColor = {166, 227, 161, 255};
+
+    SDL_Rect victoryBox = {SCREEN_WIDTH / 2 - VICTORY_BOX_WIDTH / 2,
+                           SCREEN_HEIGHT / 2 - VICTORY_BOX_HEIGHT / 2,
+                           VICTORY_BOX_WIDTH, VICTORY_BOX_HEIGHT};
+
+    // Фон
+    SDL_SetRenderDrawColor(renderer, bgColor.r, bgColor.g, bgColor.b,
+                           bgColor.a);
+    SDL_RenderFillRect(renderer, &victoryBox);
+
+    SDL_SetRenderDrawColor(renderer, textColor.r, textColor.g, textColor.b,
+                           textColor.a);
+    SDL_RenderDrawRect(renderer, &victoryBox);
+
+    string line1 = "An empire has successfully";
+    string line2 = "conquered the entire galaxy!";
+    int lineSpacing = 10;  // Пространство между строками
+
+    // Строка 1
+    SDL_Surface *surface =
+        TTF_RenderText_Solid(largeFont, line1.c_str(), textColor);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect textRect1 = {victoryBox.x + 20, victoryBox.y + 40, surface->w,
+                          surface->h};
+    SDL_RenderCopy(renderer, texture, nullptr, &textRect1);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+    // Строка 2
+    surface = TTF_RenderText_Solid(largeFont, line2.c_str(), textColor);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect textRect2 = {victoryBox.x + 20,
+                          textRect1.y + textRect1.h + lineSpacing, surface->w,
+                          surface->h};
+    SDL_RenderCopy(renderer, texture, nullptr, &textRect2);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+    TTF_CloseFont(largeFont);  // Закрываем шрифт
+
+    // Кнопка конца игры
+    SDL_Rect buttonRect = {victoryBox.x + VICTORY_BOX_WIDTH / 2 - 50,
+                           victoryBox.y + VICTORY_BOX_HEIGHT - 60, 100, 40};
+    SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g,
+                           buttonColor.b, buttonColor.a);
+    SDL_RenderFillRect(renderer, &buttonRect);
+
+    SDL_SetRenderDrawColor(renderer, textColor.r, textColor.g, textColor.b,
+                           textColor.a);
+    SDL_RenderDrawRect(renderer, &buttonRect);
+
+    // Текст кнопки
+    surface = TTF_RenderText_Solid(font, "End Game", darkTextColor);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect buttonTextRect = {buttonRect.x + 10, buttonRect.y + 10, surface->w,
+                               surface->h};
+    SDL_RenderCopy(renderer, texture, nullptr, &buttonTextRect);
+    SDL_FreeSurface(surface);
+    SDL_DestroyTexture(texture);
+
+    SDL_RenderPresent(renderer);
+
+    // Ждем нажатия
+    bool quit = false;
+    SDL_Event e;
+    while (!quit) {
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_QUIT) {
+                quit = true;
+            } else if (e.type == SDL_MOUSEBUTTONDOWN &&
+                       e.button.button == SDL_BUTTON_LEFT) {
+                int mouseX = e.button.x;
+                int mouseY = e.button.y;
+                if (mouseX >= buttonRect.x &&
+                    mouseX <= buttonRect.x + buttonRect.w &&
+                    mouseY >= buttonRect.y &&
+                    mouseY <= buttonRect.y + buttonRect.h) {
+                    quit = true;
+                }
+            }
         }
     }
 }
