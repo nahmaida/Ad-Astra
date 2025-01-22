@@ -275,13 +275,11 @@ void conquerRandomNeighbor(
         System *system = systems[dist(rng) % systems.size()];
         vector<System *> neighbors = getNeighbors(system, galaxy);
         if (neighbors.empty()) {
-            return;
+            continue;
         }
 
         // Выбираем случайного соседа
         System *randomNeighbor = neighbors[dist(rng) % neighbors.size()];
-        MapPoint location = randomNeighbor->getLocation();
-
         if (system && randomNeighbor) {
             handlePowerTransfer(system, randomNeighbor, galaxy, empires,
                                 empireColors, systemColors, powerTransfers);
