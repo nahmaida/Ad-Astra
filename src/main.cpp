@@ -12,6 +12,8 @@ const int HOVER_SIZE = 12;
 float difficulty = 1;
 
 int main(int argc, char *args[]) {
+    mt19937 rng(random_device{}());
+
     loadStarnames("/home/nahmaida/Ad-Astra/res/starnames.txt");
     int size = 100;
 
@@ -49,7 +51,7 @@ int main(int argc, char *args[]) {
         difficulty = 1 / 3;
     }
 
-    displayGalaxy(galaxy, empires);
+    displayGalaxy(galaxy, empires, rng);
 
     for (Empire *empire : empires) {
         delete empire;
@@ -58,7 +60,8 @@ int main(int argc, char *args[]) {
     return 0;
 }
 
-void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
+void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires,
+                   mt19937 &rng) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         cerr << "SDL could not initialize! SDL_Error: " << SDL_GetError()
              << endl;
@@ -114,8 +117,7 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
 
     vector<pair<System *, System *>> powerTransfers = {};
     unordered_map<const Empire *, SDL_Color> empireColors;
-    random_device rd;
-    mt19937 rng(rd());
+
     uniform_int_distribution<int> dist(50, 255);
 
     for (const Empire *empire : empires) {
@@ -181,7 +183,7 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
         // Обновление захвата случайных соседей
         if (SDL_GetTicks() - lastConquerUpdate >= conquerUpdateInterval) {
             conquerRandomNeighbor(empires, galaxy, empireColors, systemColors,
-                                  powerTransfers);
+                                  powerTransfers, rng);
             lastConquerUpdate = SDL_GetTicks();
         }
 
@@ -245,7 +247,7 @@ bool isOwned(SDL_Color color) {
              color.b == defaultHabitable.b && color.a == defaultHabitable.a);
 }
 
-void updatePower(unordered_map<int, SDL_Color> &systemColors, System* system) {
+void updatePower(unordered_map<int, SDL_Color> &systemColors, System *system) {
     if (!isOwned(systemColors[system->getId()])) {
         return;
     }
@@ -265,27 +267,20 @@ void conquerRandomNeighbor(
     vector<Empire *> &empires, const Galaxy &galaxy,
     unordered_map<const Empire *, SDL_Color> &empireColors,
     unordered_map<int, SDL_Color> &systemColors,
-    vector<pair<System *, System *>> &powerTransfers) {
-    random_device rd;
-    mt19937 rng(rd());
+    vector<pair<System *, System *>> &powerTransfers, mt19937 &rng) {
     uniform_int_distribution<int> dist(0, 100);  // диапазон случайных чисел
 
     for (Empire *empire : empires) {
-        cout << "Empire: " << empire->getName() << endl;
         vector<System *> systems = empire->getSystems();
         System *system = systems[dist(rng) % systems.size()];
         vector<System *> neighbors = getNeighbors(system, galaxy);
-        MapPoint syslocation = system->getLocation();
         if (neighbors.empty()) {
-            cout << "No neighbors found for system at " << syslocation.x << " "
-                 << syslocation.y << endl;
             return;
         }
 
         // Выбираем случайного соседа
         System *randomNeighbor = neighbors[dist(rng) % neighbors.size()];
         MapPoint location = randomNeighbor->getLocation();
-        cout << location.x << " " << location.y << endl;
 
         if (system && randomNeighbor) {
             handlePowerTransfer(system, randomNeighbor, galaxy, empires,
@@ -339,10 +334,10 @@ void renderSystemInfo(TTF_Font *font, System *selectedSystem,
 }
 
 unordered_map<int, SDL_Color> getSystemColors(
-    const vector<System*> &systems, vector<Empire *> &empires,
+    const vector<System *> &systems, vector<Empire *> &empires,
     unordered_map<const Empire *, SDL_Color> empireColors) {
     unordered_map<int, SDL_Color> systemColors;
-    for (const System* system : systems) {
+    for (const System *system : systems) {
         SDL_Color systemColor = {249, 226, 175, 255};
         if (system->hasHabitables()) {
             systemColor = {166, 227, 161, 255};
@@ -423,13 +418,13 @@ void drawSystemHover(System *hoveredSystem, int mouseX, int mouseY,
     renderSystemInfo(font, hoveredSystem, renderer, infoBox, planets);
 }
 
-void handlePowerUpdate(vector<System*> &systems,
+void handlePowerUpdate(vector<System *> &systems,
                        unordered_map<int, SDL_Color> &systemColors,
                        vector<pair<System *, System *>> &powerTransfers,
                        const Galaxy &galaxy, vector<Empire *> &empires,
                        unordered_map<const Empire *, SDL_Color> &empireColors,
                        Uint32 &lastPowerUpdate) {
-    for (System* system : systems) {
+    for (System *system : systems) {
         updatePower(systemColors, system);
     }
 

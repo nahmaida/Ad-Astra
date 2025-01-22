@@ -38,7 +38,7 @@ void drawSystem(const System *system, const int CELL_SIZE,
 void drawSystemHover(System *hoveredSystem, int mouseX, int mouseY,
                      SDL_Renderer *renderer, TTF_Font *font);
 
-void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires);
+void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires, mt19937 &rng);
 
 void handlePowerUpdate(
     vector<System*> &systems,
@@ -64,6 +64,6 @@ void generateEmpire(vector<Empire *> &empires, Galaxy &galaxy);
 void conquerRandomNeighbor(
     vector<Empire *> &empires, const Galaxy &galaxy,
     unordered_map<const Empire *, SDL_Color> &empireColors,
-    unordered_map<int, SDL_Color> &systemColors, vector<pair<System *, System *>> &powerTransfers);
+    unordered_map<int, SDL_Color> &systemColors, vector<pair<System *, System *>> &powerTransfers, mt19937 &rng);
 
 #endif  // MAIN_H
