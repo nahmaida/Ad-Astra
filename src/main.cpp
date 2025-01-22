@@ -47,8 +47,8 @@ int main(int argc, char *args[]) {
     while (1) {
         int nHabitables = 0;
         for (System *system : galaxy.getSystems()) {
-            for (Planet planet : system->getPlanets()) {
-                nHabitables += (int)planet.isHabitable();
+            if (system->hasHabitables()) {
+                nHabitables++;
             }
         }
         if (nEmpires > nHabitables) {
