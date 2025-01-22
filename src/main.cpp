@@ -30,7 +30,8 @@ int main(int argc, char *args[]) {
     }
 
     try {
-        cout << "Введите размер галактики (от " << nEmpires << ", 60-120 - рекомендуемый)\n>> ";
+        cout << "Введите размер галактики (от " << nEmpires
+             << ", 60-120 - рекомендуемый)\n>> ";
         cin >> size;
         if (size < nEmpires) {
             throw invalid_argument(
@@ -309,7 +310,10 @@ void conquerRandomNeighbor(
         }
 
         // Выбираем случайного соседа
-        System *randomNeighbor = neighbors[dist(rng) % neighbors.size()];
+        System *randomNeighbor = system;
+        while (randomNeighbor->getId() == system->getId()) {
+            randomNeighbor = neighbors[dist(rng) % neighbors.size()];
+        }
 
         // Если есть незахваченая система, выбираем ее
         for (System *neighbor : neighbors) {
@@ -320,7 +324,7 @@ void conquerRandomNeighbor(
         }
 
         if (system && randomNeighbor) {
-            handlePowerTransfer(system, randomNeighbor, galaxy, empires,
+            handlePowerTransfer(randomNeighbor, system, galaxy, empires,
                                 empireColors, systemColors, powerTransfers);
         }
     }
