@@ -395,20 +395,26 @@ bool checkVictory(const vector<System *> &systems, vector<Empire *> &empires,
                   Empire *&victoriousEmpire,
                   unordered_map<const Empire *, SDL_Color> &empireColors,
                   unordered_map<int, SDL_Color> &systemColors) {
-    SDL_Color previousColor = {0, 0, 0, 0};
     SDL_Color color = {0, 0, 0, 0};
+
+    vector<SDL_Color> colors = {};
 
     for (System *system : systems) {
         color = systemColors[system->getId()];
-        if (!isSameColor(color, previousColor) &&
-            !isSameColor(previousColor, {0, 0, 0, 0})) {
-            return false;
+        bool isUnique = find_if(begin(colors), end(colors), [&](SDL_Color c) {
+            return isSameColor(c, color);
+        }) == end(colors);
+        if (isOwned(color) && isUnique) {
+            colors.push_back(color);
         }
-        previousColor = color;
     }
 
+    if (colors.size() != 1) {
+        return false;
+    }
+   
     auto it = find_if(begin(empires), end(empires), [&](const Empire *e) {
-        return isSameColor(empireColors[e], color);
+        return isSameColor(empireColors[e], colors[0]);
     });
     victoriousEmpire = *it;
     return true;
@@ -427,7 +433,7 @@ void renderWelcomeScreen(TTF_Font *font, SDL_Renderer *renderer,
     SDL_RenderClear(renderer);
 
     // Текст приветствия
-    surface = TTF_RenderText_Solid(font, "Welcome! Select an empire to start",
+    surface = TTF_RenderText_Solid(font, "Welcome! Click on an empire to start",
                                    textColor);
     texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_Rect messageRect = {SCREEN_WIDTH / 2 - surface->w / 2,
