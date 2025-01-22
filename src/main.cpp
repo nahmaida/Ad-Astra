@@ -93,7 +93,7 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
         return;
     }
 
-    vector<System> systems = galaxy.getSystems();
+    vector<System *> systems = galaxy.getSystems();
     const auto &connections = galaxy.getConnections();
 
     TTF_Font *font = TTF_OpenFont(
@@ -146,8 +146,8 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
         hoveredSystem = nullptr;
 
         // Проверка на наведенный объект
-        for (System &system : systems) {
-            MapPoint location = system.getLocation();
+        for (System *system : systems) {
+            MapPoint location = system->getLocation();
             int starX = location.x * CELL_SIZE;
             int starY = location.y * CELL_SIZE;
 
@@ -155,7 +155,7 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
                              CELL_SIZE, CELL_SIZE};
             if (mouseX >= rect.x && mouseX < rect.x + rect.w &&
                 mouseY >= rect.y && mouseY < rect.y + rect.h) {
-                hoveredSystem = &system;
+                hoveredSystem = system;
                 break;
             }
         }
@@ -198,7 +198,7 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
 
         drawPowerTransferArrows(renderer, powerTransfers);
 
-        for (const System &system : systems) {
+        for (const System *system : systems) {
             drawSystem(system, CELL_SIZE, hoveredSystem, HOVER_SIZE, renderer,
                        systemColors, font);
         }
@@ -245,17 +245,17 @@ bool isOwned(SDL_Color color) {
              color.b == defaultHabitable.b && color.a == defaultHabitable.a);
 }
 
-void updatePower(unordered_map<int, SDL_Color> &systemColors, System &system) {
-    if (!isOwned(systemColors[system.getId()])) {
+void updatePower(unordered_map<int, SDL_Color> &systemColors, System* system) {
+    if (!isOwned(systemColors[system->getId()])) {
         return;
     }
-    system.setPower(system.getPower() + 1);
-    if (system.hasHabitables()) {
+    system->setPower(system->getPower() + 1);
+    if (system->hasHabitables()) {
         int revenue = 0;
-        for (const Resources &resource : system.getResources()) {
+        for (const Resources &resource : system->getResources()) {
             revenue += resource.getPrice();
         }
-        system.setPower(system.getPower() + revenue * difficulty);
+        system->setPower(system->getPower() + revenue * difficulty);
     }
 }
 
@@ -339,38 +339,38 @@ void renderSystemInfo(TTF_Font *font, System *selectedSystem,
 }
 
 unordered_map<int, SDL_Color> getSystemColors(
-    const vector<System> &systems, vector<Empire *> &empires,
+    const vector<System*> &systems, vector<Empire *> &empires,
     unordered_map<const Empire *, SDL_Color> empireColors) {
     unordered_map<int, SDL_Color> systemColors;
-    for (const System &system : systems) {
+    for (const System* system : systems) {
         SDL_Color systemColor = {249, 226, 175, 255};
-        if (system.hasHabitables()) {
+        if (system->hasHabitables()) {
             systemColor = {166, 227, 161, 255};
         }
         for (const Empire *empire : empires) {
             for (const System *empireSystem : empire->getSystems()) {
-                if (empireSystem->getId() == system.getId()) {
+                if (empireSystem->getId() == system->getId()) {
                     systemColor = empireColors[empire];
                 }
             }
         }
-        systemColors[system.getId()] = systemColor;
+        systemColors[system->getId()] = systemColor;
     }
     return systemColors;
 }
 
-void drawSystem(const System &system, const int CELL_SIZE,
+void drawSystem(const System *system, const int CELL_SIZE,
                 System *hoveredSystem, const int HOVER_SIZE,
                 SDL_Renderer *renderer,
                 unordered_map<int, SDL_Color> systemColors, TTF_Font *font) {
-    MapPoint location = system.getLocation();
+    MapPoint location = system->getLocation();
     int starX = location.x * CELL_SIZE;
     int starY = location.y * CELL_SIZE;
     SDL_Rect rect = {starX - CELL_SIZE / 2, starY - CELL_SIZE / 2, CELL_SIZE,
                      CELL_SIZE};
 
-    SDL_Color systemColor = systemColors[system.getId()];
-    bool isHovered = (&system == hoveredSystem);
+    SDL_Color systemColor = systemColors[system->getId()];
+    bool isHovered = (system == hoveredSystem);
     if (isHovered || isOwned(systemColor)) {
         rect.x = starX - HOVER_SIZE / 2;
         rect.y = starY - HOVER_SIZE / 2;
@@ -388,7 +388,7 @@ void drawSystem(const System &system, const int CELL_SIZE,
     // Отображаем силу под звездой
     SDL_Color textColor = {205, 214, 244, 255};
     char power[32];
-    sprintf(power, "%d", system.getPower());
+    sprintf(power, "%d", system->getPower());
     SDL_Surface *surface = TTF_RenderText_Solid(font, power, textColor);
     SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_Rect textRect = {starX - surface->w / 2, starY + HOVER_SIZE / 2,
@@ -423,13 +423,13 @@ void drawSystemHover(System *hoveredSystem, int mouseX, int mouseY,
     renderSystemInfo(font, hoveredSystem, renderer, infoBox, planets);
 }
 
-void handlePowerUpdate(vector<System> &systems,
+void handlePowerUpdate(vector<System*> &systems,
                        unordered_map<int, SDL_Color> &systemColors,
                        vector<pair<System *, System *>> &powerTransfers,
                        const Galaxy &galaxy, vector<Empire *> &empires,
                        unordered_map<const Empire *, SDL_Color> &empireColors,
                        Uint32 &lastPowerUpdate) {
-    for (System &system : systems) {
+    for (System* system : systems) {
         updatePower(systemColors, system);
     }
 
@@ -544,15 +544,25 @@ void generateEmpire(vector<Empire *> &empires, Galaxy &galaxy) {
     int i = empires.size();
     Empire *empire = new Empire(i + 1);
     empire->fill(galaxy);
+
+    if (!empire || !empire->getSystems()[0]) {
+        delete empire;
+        empire = nullptr;
+        return;
+    }
+
     for (const Empire *otherEmpire : empires) {
-        if (otherEmpire->getSystems()[0] == empire->getSystems()[0]) {
+        if (otherEmpire->getSystems()[0]->getId() ==
+            empire->getSystems()[0]->getId()) {
             delete empire;
             empire = nullptr;
-            break;
+            return;
         }
     }
 
-    if (!empire || !empire->getSystems()[0]) {
+    MapPoint location = empire->getSystems()[0]->getLocation();
+    if (location.x <= 0 || location.y < 0 || location.x >= 10000 ||
+        location.y >= 10000) {
         delete empire;
         empire = nullptr;
         return;

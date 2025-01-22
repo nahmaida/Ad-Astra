@@ -126,7 +126,7 @@ class System : public CelestialBody {
 class Galaxy {
    private:
     int size;
-    vector<System> systems;
+    vector<System*> systems;
     vector<Line> connections;
 
     void connectSystems();
@@ -135,7 +135,7 @@ class Galaxy {
    public:
     Galaxy(int size);
     void fill();
-    vector<System> getSystems() const;
+    vector<System*> getSystems() const;
     vector<Line> getConnections() const;
     int getSize() const;
 };

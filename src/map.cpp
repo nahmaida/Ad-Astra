@@ -170,25 +170,25 @@ void Galaxy::fill() {
         int planetCount = rand() % 6 + 1;
 
         // Создаем новую систему и задаем уникальный ID
-        System system(name, planetCount);
-        system.setId(i);
+        System* system = new System(name, planetCount);
+        system->setId(i);
 
         // Заполняем систему
-        system.fill();
+        system->fill();
         systems.push_back(system);
     }
 
     // Расставляем системы по координатам
     vector<MapPoint> points = sunflower(systems.size());
     for (size_t j = 0; j < systems.size(); j++) {
-        systems[j].setLocation(points[j]);
+        systems[j]->setLocation(points[j]);
     }
 
     // Создаем соединения между системами
     connectSystems();
 }
 
-vector<System> Galaxy::getSystems() const { return systems; }
+vector<System*> Galaxy::getSystems() const { return systems; }
 vector<Line> Galaxy::getConnections() const { return connections; }
 int Galaxy::getSize() const { return size; }
 
@@ -207,10 +207,10 @@ void Galaxy::connectSystems() {
         vector<int> nearbySystems;
 
         // поиск соседей в пределах радиуса
-        MapPoint currentLocation = systems[i].getLocation();
+        MapPoint currentLocation = systems[i]->getLocation();
         for (int j = 0; j < systems.size(); j++) {
             if (i == j) continue;  // Пропуск самой себя
-            MapPoint neighborLocation = systems[j].getLocation();
+            MapPoint neighborLocation = systems[j]->getLocation();
 
             // вычисление евклидова расстояния
             double distance =
@@ -239,8 +239,8 @@ void Galaxy::connectSystems() {
             addedConnections.insert({i, neighbor});
 
             // добавление линии между системами
-            MapPoint start = systems[i].getLocation();
-            MapPoint end = systems[neighbor].getLocation();
+            MapPoint start = systems[i]->getLocation();
+            MapPoint end = systems[neighbor]->getLocation();
             connections.emplace_back(start, end);
         }
     }
@@ -253,18 +253,18 @@ vector<System*> getNeighbors(System* targetSystem, const Galaxy& galaxy) {
     for (Line connection : galaxy.getConnections()) {
         if (connection.start.x == location.x &&
             connection.start.y == location.y) {
-            for (System& system : galaxy.getSystems()) {
-                if (connection.end.x == system.getLocation().x &&
-                    connection.end.y == system.getLocation().y) {
-                    neighbors.push_back(&system);
+            for (System* system : galaxy.getSystems()) {
+                if (connection.end.x == system->getLocation().x &&
+                    connection.end.y == system->getLocation().y) {
+                    neighbors.push_back(system);
                 }
             }
         } else if (connection.end.x == location.x &&
                    connection.end.y == location.y) {
-            for (System& system : galaxy.getSystems()) {
-                if (connection.start.x == system.getLocation().x &&
-                    connection.start.y == system.getLocation().y) {
-                    neighbors.push_back(&system);
+            for (System* system : galaxy.getSystems()) {
+                if (connection.start.x == system->getLocation().x &&
+                    connection.start.y == system->getLocation().y) {
+                    neighbors.push_back(system);
                 }
             }
         }

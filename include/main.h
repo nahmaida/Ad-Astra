@@ -27,10 +27,10 @@ void renderSystemInfo(TTF_Font *font, System *selectedSystem,
                       const vector<Planet> &planets);
 
 unordered_map<int, SDL_Color> getSystemColors(
-    const vector<System> &systems, vector<Empire *> &empires,
+    const vector<System*> &systems, vector<Empire *> &empires,
     unordered_map<const Empire *, SDL_Color> empireColors);
 
-void drawSystem(const System &system, const int CELL_SIZE,
+void drawSystem(const System *system, const int CELL_SIZE,
                 System *hoveredSystem, const int HOVER_SIZE,
                 SDL_Renderer *renderer,
                 unordered_map<int, SDL_Color> systemColors, TTF_Font *font);
@@ -41,11 +41,11 @@ void drawSystemHover(System *hoveredSystem, int mouseX, int mouseY,
 void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires);
 
 void handlePowerUpdate(
-    std::vector<System> &systems,
-    std::unordered_map<int, SDL_Color> &systemColors,
-    std::vector<std::pair<System *, System *>> &powerTransfers,
-    const Galaxy &galaxy, std::vector<Empire *> &empires,
-    std::unordered_map<const Empire *, SDL_Color> &empireColors,
+    vector<System*> &systems,
+    unordered_map<int, SDL_Color> &systemColors,
+    vector<pair<System *, System *>> &powerTransfers,
+    const Galaxy &galaxy, vector<Empire *> &empires,
+    unordered_map<const Empire *, SDL_Color> &empireColors,
     Uint32 &lastPowerUpdate);
 
 void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,

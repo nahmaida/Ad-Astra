@@ -48,15 +48,15 @@ void Empire::addSystem(System *system) { this->systems.push_back(system); }
 
 // Заполнение данных империи
 void Empire::fill(Galaxy &galaxy) {
-    vector<System> gsystems = galaxy.getSystems();
+    vector<System*> gsystems = galaxy.getSystems();
     std::random_device rd;
     std::mt19937 g(rd());
     std::shuffle(gsystems.begin(), gsystems.end(), g);
 
     // Находим систему с обитаемыми планетами
-    for (System &system : gsystems) {
-        if (system.hasHabitables()) {
-            this->systems.push_back(&system);
+    for (System* system : gsystems) {
+        if (system->hasHabitables()) {
+            this->systems.push_back(system);
             break;
         }
     }
