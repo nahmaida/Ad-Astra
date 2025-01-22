@@ -225,7 +225,7 @@ void Galaxy::connectSystems() {
         // перемешивание соседних систем для случайного выбора
         std::shuffle(nearbySystems.begin(), nearbySystems.end(), rng);
         // случайный выбор 1–3 соседей для соединения
-        int numConnections = min((int)nearbySystems.size(), rand() % 3 + 1);
+        int numConnections = max(1, min((int)nearbySystems.size(), rand() % 3 + 2 - (int) (connectionRadius / 10)));
         for (int k = 0; k < numConnections; k++) {
             int neighbor = nearbySystems[k];
 

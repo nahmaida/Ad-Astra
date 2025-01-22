@@ -530,7 +530,7 @@ void renderVictoryScreen(SDL_Renderer *renderer, TTF_Font *font,
                            textColor.a);
     SDL_RenderDrawRect(renderer, &victoryBox);
 
-    string line1 = "Your empire has successfully";
+    string line1 = "Victory! You have successfully";
     string line2 = "conquered the entire galaxy!";
     int lineSpacing = 10;  // Пространство между строками
 
@@ -602,7 +602,7 @@ void renderVictoryScreen(SDL_Renderer *renderer, TTF_Font *font,
 
 // Окно поражения (шрифт не работает на русском)
 void renderGameOverScreen(SDL_Renderer *renderer, TTF_Font *font,
-                         TTF_Font *largeFont) {
+                          TTF_Font *largeFont) {
     const int VICTORY_BOX_WIDTH = 400;
     const int VICTORY_BOX_HEIGHT = 200;
     const SDL_Color bgColor = {69, 71, 90, 255};

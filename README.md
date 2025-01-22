@@ -19,7 +19,7 @@ g++ *.o -o bin/debug/main -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf
 ## 2. Построить & запустить (релиз):
 
 ```shell
-g++ -c src/*.cpp -m64 -03 -Wall -I include
+g++ -c src/*.cpp -m64 -O3 -Wall -I include
 g++ *.o -o bin/release/main -s -lSDL2main -lSDL2 -lSDL2_image -lSDL2_tff
 ./bin/release/main
 ```
