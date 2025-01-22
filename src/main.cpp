@@ -9,6 +9,7 @@ const int DELAY = 2000;  // Интервал обновления силы (в �
 const int FPS = 30;
 const int CELL_SIZE = 8;
 const int HOVER_SIZE = 12;
+float difficulty = 1;
 
 int main(int argc, char *args[]) {
     loadStarnames("/home/nahmaida/Ad-Astra/res/starnames.txt");
@@ -23,6 +24,10 @@ int main(int argc, char *args[]) {
     while (empires.size() < 9) {
         generateEmpire(empires, galaxy);
     }
+
+    cout << "Введите сложность (от 1 до 5)\n>> ";
+    cin >> difficulty;
+    difficulty = 1 / difficulty;
 
     displayGalaxy(galaxy, empires);
 
@@ -198,11 +203,11 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires) {
     SDL_Quit();
 }
 
-void conquer(System &system, Empire *empire, vector<Empire *> &empires,
+void conquer(System *system, Empire *empire, vector<Empire *> &empires,
              unordered_map<const Empire *, SDL_Color> &empireColors,
-             unordered_map<int, SDL_Color> &systemColors, Galaxy galaxy) {
-    systemColors[system.getId()] = empireColors[empire];
-    empire->addSystem(&system);
+             unordered_map<int, SDL_Color> &systemColors) {
+    systemColors[system->getId()] = empireColors[empire];
+    empire->addSystem(system);
 }
 
 bool isSameColor(SDL_Color color1, SDL_Color color2) {
@@ -230,7 +235,7 @@ void updatePower(unordered_map<int, SDL_Color> &systemColors, System &system) {
         for (const Resources &resource : system.getResources()) {
             revenue += resource.getPrice();
         }
-        system.setPower(system.getPower() + revenue);
+        system.setPower(system.getPower() + revenue * difficulty);
     }
 }
 
@@ -246,15 +251,21 @@ void conquerRandomNeighbor(
     uniform_int_distribution<int> dist(0, 100);  // диапазон случайных чисел
 
     for (Empire *empire : empires) {
+        cout << "Empire: " << empire->getName() << endl;
         vector<System *> systems = empire->getSystems();
         System *system = systems[dist(rng) % systems.size()];
         vector<System *> neighbors = getNeighbors(system, galaxy);
+        MapPoint syslocation = system->getLocation();
         if (neighbors.empty()) {
+            cout << "No neighbors found for system at " << syslocation.x << " "
+                 << syslocation.y << endl;
             return;
         }
 
         // Выбираем случайного соседа
         System *randomNeighbor = neighbors[dist(rng) % neighbors.size()];
+        MapPoint location = randomNeighbor->getLocation();
+        cout << location.x << " " << location.y << endl;
 
         if (system && randomNeighbor) {
             handlePowerTransfer(system, randomNeighbor, galaxy, empires,
@@ -453,9 +464,6 @@ void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,
             return;  // Можно перевести только соседу
         }
 
-        int transferAmount = selectedSystem->getPower();
-        int targetAmount = hoveredSystem->getPower();
-
         // Переводим силу
         transferPower(selectedSystem, hoveredSystem, galaxy, empires,
                       empireColors, systemColors, empireColor);
@@ -562,6 +570,6 @@ void transferPower(System *&from, System *&to, const Galaxy &galaxy,
                       systemColors[to->getId()])) &&
         transferAmount > targetAmount) {
         to->setPower(transferAmount - targetAmount);
-        conquer(*to, empire, empires, empireColors, systemColors, galaxy);
+        conquer(to, empire, empires, empireColors, systemColors);
     }
 }

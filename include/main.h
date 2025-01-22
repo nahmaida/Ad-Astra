@@ -14,9 +14,9 @@
 #include "../include/empire.h"
 #include "../include/map.h"
 
-void conquer(System &system, Empire *empire, vector<Empire *> &empires,
+void conquer(System *system, Empire *empire, vector<Empire *> &empires,
              unordered_map<const Empire *, SDL_Color> &empireColors,
-             unordered_map<int, SDL_Color> &systemColors, Galaxy galaxy);
+             unordered_map<int, SDL_Color> &systemColors);
 
 bool isOwned(SDL_Color color);
 
