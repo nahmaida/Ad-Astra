@@ -9,8 +9,8 @@ __AD ASTRA!__
 ## 1. Построить & запустить (дебаг):
 
 ```shell
-g++ -c src/*.cpp -m64 -g -Wall -I include
-g++ *.o -o bin/debug/main -lSDL2main -lSDL2 -lSDL2_image -lSDL2_tff
+g++ -c src/*.cpp -m64 -g3 -Wall -I include
+g++ *.o -o bin/debug/main -lSDL2main -lSDL2 -lSDL2_image -lSDL2_ttf
 ./bin/debug/main
 ```
 

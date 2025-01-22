@@ -5,12 +5,13 @@
 const int SCREEN_WIDTH = 800;
 const int SCREEN_HEIGHT = 800;
 const int FONT_SIZE = 22;
-const int DELAY = 5000;  // Интервал обновления силы (в миллисекундах)
+const int DELAY = 4000;  // Интервал обновления силы (в миллисекундах)
 const int FPS = 30;
 const int CELL_SIZE = 8;
 const int HOVER_SIZE = 12;
 float difficulty = 1;
 Empire *selectedEmpire = nullptr;
+SDL_Color playerColor = {0, 0, 0, 0};
 
 int main(int argc, char *args[]) {
     mt19937 rng(random_device{}());
@@ -76,7 +77,7 @@ int main(int argc, char *args[]) {
             throw invalid_argument(
                 "Неверная сложность! Будет установлена сложность 3.");
         } else {
-            difficulty = 1 / difficulty;
+            difficulty = 1 / (difficulty / 2);
         }
     } catch (const exception &e) {
         cout << e.what() << endl;
@@ -220,9 +221,8 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires,
             } else if (e.type == SDL_MOUSEBUTTONDOWN &&
                        e.button.button == SDL_BUTTON_LEFT) {
                 if (!empireSelected) {
-                    handleEmpireSelection(
-                        e, empires,
-                        selectedSystem);  // Выбираем империю
+                    handleEmpireSelection(e, empires, selectedSystem,
+                                          empireColors);  // Выбираем империю
                     empireSelected = true;
                 }
 
@@ -327,7 +327,10 @@ void updatePower(unordered_map<int, SDL_Color> &systemColors, System *system) {
         for (const Resources &resource : system->getResources()) {
             revenue += resource.getPrice();
         }
-        system->setPower(system->getPower() + revenue * difficulty);
+        if (isSameColor(systemColors[system->getId()], playerColor)) {
+            revenue = revenue * difficulty;
+        }
+        system->setPower(system->getPower() + revenue);
     }
 }
 
@@ -433,8 +436,8 @@ void renderWelcomeScreen(TTF_Font *font, SDL_Renderer *renderer,
     SDL_SetRenderDrawColor(renderer, buttonColor.r, buttonColor.g,
                            buttonColor.b, buttonColor.a);
     SDL_RenderFillRect(renderer, &buttonRect);
-    SDL_SetRenderDrawColor(renderer, textColor.r, textColor.g,
-                           textColor.b, textColor.a);
+    SDL_SetRenderDrawColor(renderer, textColor.r, textColor.g, textColor.b,
+                           textColor.a);
     SDL_RenderDrawRect(renderer, &buttonRect);
 
     // Текст кнопки
@@ -471,16 +474,16 @@ void renderWelcomeScreen(TTF_Font *font, SDL_Renderer *renderer,
     }
 }
 
-void handleEmpireSelection(SDL_Event &e, vector<Empire *> &empires,
-                           System *&selectedSystem) {
+void handleEmpireSelection(
+    SDL_Event &e, vector<Empire *> &empires, System *&selectedSystem,
+    unordered_map<const Empire *, SDL_Color> &empireColors) {
     if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT) {
         int mouseX = e.button.x;
         int mouseY = e.button.y;
 
         // Ищем империю владельца
         for (Empire *empire : empires) {
-            System *empireSystem =
-                empire->getSystems()[0];
+            System *empireSystem = empire->getSystems()[0];
             MapPoint location = empireSystem->getLocation();
             int systemX = location.x * CELL_SIZE;
             int systemY = location.y * CELL_SIZE;
@@ -490,6 +493,7 @@ void handleEmpireSelection(SDL_Event &e, vector<Empire *> &empires,
             if (abs(mouseX - systemX) < systemRadius &&
                 abs(mouseY - systemY) < systemRadius) {
                 selectedEmpire = empire;
+                playerColor = empireColors[empire];
                 selectedSystem = empireSystem;
                 return;
             }
@@ -760,7 +764,6 @@ void handlePowerTransfer(System *&hoveredSystem, System *&selectedSystem,
         // Отменяем выбор
         selectedSystem = nullptr;
     } else {
-        SDL_Color playerColor = empireColors[selectedEmpire];
         if (isPlayerClick &&
             !isSameColor(systemColors[selectedSystem->getId()], playerColor)) {
             selectedSystem = nullptr;

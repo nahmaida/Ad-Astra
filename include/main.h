@@ -32,7 +32,7 @@ void renderWelcomeScreen(TTF_Font *font, SDL_Renderer *renderer,
                          bool &quitWelcomeScreen);
 
 void handleEmpireSelection(SDL_Event &e, vector<Empire *> &empires,
-                           System *&selectedSystem);
+                           System *&selectedSystem, unordered_map<const Empire *, SDL_Color> &empireColors);
 
 bool checkVictory(const vector<System *> &systems, vector<Empire *> &empires,
                   Empire *&victoriousEmpire,
