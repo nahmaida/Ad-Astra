@@ -259,6 +259,16 @@ void displayGalaxy(const Galaxy &galaxy, vector<Empire *> &empires,
 void conquer(System *system, Empire *empire, vector<Empire *> &empires,
              unordered_map<const Empire *, SDL_Color> &empireColors,
              unordered_map<int, SDL_Color> &systemColors) {
+    // Ищет владельца системы если есть
+    SDL_Color color = systemColors[system->getId()];
+    Empire *oldEmpire = nullptr;
+    if (isOwned(color)) {
+        auto it = find_if(begin(empires), end(empires), [&](const Empire* e) {
+            return isSameColor(empireColors[e], color);
+        });
+        oldEmpire = *it;
+        oldEmpire->removeSystem(system);
+    }
     systemColors[system->getId()] = empireColors[empire];
     empire->addSystem(system);
 }
@@ -303,6 +313,11 @@ void conquerRandomNeighbor(
 
     for (Empire *empire : empires) {
         vector<System *> systems = empire->getSystems();
+
+        if (systems.empty()) {
+            continue;
+        }
+
         System *system = systems[dist(rng) % systems.size()];
         vector<System *> neighbors = getNeighbors(system, galaxy);
         if (neighbors.empty()) {

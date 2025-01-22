@@ -46,6 +46,13 @@ vector<System *> Empire::getSystems() const { return this->systems; }
 
 void Empire::addSystem(System *system) { this->systems.push_back(system); }
 
+void Empire::removeSystem(System *system) {
+    auto it = std::find(this->systems.begin(), this->systems.end(), system);
+    if (it != this->systems.end()) {
+        this->systems.erase(it);
+    }
+}
+
 // Заполнение данных империи
 void Empire::fill(Galaxy &galaxy) {
     vector<System*> gsystems = galaxy.getSystems();

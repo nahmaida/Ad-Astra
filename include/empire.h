@@ -20,6 +20,7 @@ class Empire {
     vector<System*> getSystems() const;
     void fill(Galaxy &galaxy);
     void addSystem(System* system);
+    void removeSystem(System *system);
     Empire& operator=(const Empire& other);
     ~Empire();
 };

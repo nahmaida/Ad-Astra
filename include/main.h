@@ -20,6 +20,8 @@ void conquer(System *system, Empire *empire, vector<Empire *> &empires,
 
 bool isOwned(SDL_Color color);
 
+bool isSameColor(SDL_Color color1, SDL_Color color2);
+
 void updatePower(unordered_map<int, SDL_Color> &systemColors, System &system);
 
 void renderSystemInfo(TTF_Font *font, System *selectedSystem,
