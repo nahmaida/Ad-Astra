@@ -138,6 +138,7 @@ class Galaxy {
     vector<System*> getSystems() const;
     vector<Line> getConnections() const;
     int getSize() const;
+    void clear();
 };
 
 // функции

@@ -16,11 +16,23 @@ int main(int argc, char *args[]) {
 
     loadStarnames("/home/nahmaida/Ad-Astra/res/starnames.txt");
     int size = 100;
+    int nEmpires = 9;
+    try {
+        cout << "Введите количество империй (от 1, 9 - рекомендуемое)\n>> ";
+        cin >> nEmpires;
+        if (nEmpires < 1) {
+            throw invalid_argument(
+                "Неверное количество! Будет установлено количество 9.");
+        }
+    } catch (const exception &e) {
+        cout << e.what() << endl;
+        nEmpires = 9;
+    }
 
     try {
-        cout << "Введите размер галактики (от 9, 60-120 - рекомендуемый)\n>> ";
+        cout << "Введите размер галактики (от " << nEmpires << ", 60-120 - рекомендуемый)\n>> ";
         cin >> size;
-        if (size < 9) {
+        if (size < nEmpires) {
             throw invalid_argument(
                 "Неверный размер! Будет установлен размер 100.");
         }
@@ -32,8 +44,26 @@ int main(int argc, char *args[]) {
     Galaxy galaxy(size);
     galaxy.fill();
 
+    while (1) {
+        int nHabitables = 0;
+        for (System *system : galaxy.getSystems()) {
+            for (Planet planet : system->getPlanets()) {
+                nHabitables += (int)planet.isHabitable();
+            }
+        }
+        if (nEmpires > nHabitables) {
+            cout << "Недостаточно планет для генерации, пробуем еще раз..."
+                 << endl;
+            galaxy.clear();
+            galaxy = Galaxy(size);
+            galaxy.fill();
+        } else {
+            break;
+        }
+    }
+
     vector<Empire *> empires;
-    while (empires.size() < 9) {
+    while (empires.size() < nEmpires) {
         generateEmpire(empires, galaxy);
     }
 
@@ -280,6 +310,15 @@ void conquerRandomNeighbor(
 
         // Выбираем случайного соседа
         System *randomNeighbor = neighbors[dist(rng) % neighbors.size()];
+
+        // Если есть незахваченая система, выбираем ее
+        for (System *neighbor : neighbors) {
+            if (!isOwned(systemColors[neighbor->getId()])) {
+                randomNeighbor = neighbor;
+                break;
+            }
+        }
+
         if (system && randomNeighbor) {
             handlePowerTransfer(system, randomNeighbor, galaxy, empires,
                                 empireColors, systemColors, powerTransfers);

@@ -246,6 +246,14 @@ void Galaxy::connectSystems() {
     }
 }
 
+void Galaxy::clear() {
+    for (System* system : systems) {
+        delete system;
+    }
+    systems.clear();
+    connections.clear();
+}
+
 vector<System*> getNeighbors(System* targetSystem, const Galaxy& galaxy) {
     vector<System*> neighbors;
     MapPoint location = targetSystem->getLocation();
