@@ -14,8 +14,18 @@ float difficulty = 1;
 int main(int argc, char *args[]) {
     loadStarnames("/home/nahmaida/Ad-Astra/res/starnames.txt");
     int size = 100;
-    cout << "Введите размер галактики (от 90, 100 - рекомендуемый)\n>> ";
-    cin >> size;
+
+    try {
+        cout << "Введите размер галактики (от 90, 100 - рекомендуемый)\n>> ";
+        cin >> size;
+        if (size < 90) {
+            throw invalid_argument(
+                "Неверный размер! Будет установлен размер 100.");
+        }
+    } catch (const exception &e) {
+        cout << e.what() << endl;
+        size = 100;
+    }
 
     Galaxy galaxy(size);
     galaxy.fill();
@@ -25,9 +35,19 @@ int main(int argc, char *args[]) {
         generateEmpire(empires, galaxy);
     }
 
-    cout << "Введите сложность (от 1 до 5)\n>> ";
-    cin >> difficulty;
-    difficulty = 1 / difficulty;
+    try {
+        cout << "Введите сложность (от 1 до 5)\n>> ";
+        cin >> difficulty;
+        if (difficulty < 1 || difficulty > 5) {
+            throw invalid_argument(
+                "Неверная сложность! Будет установлена сложность 3.");
+        } else {
+            difficulty = 1 / difficulty;
+        }
+    } catch (const exception &e) {
+        cout << e.what() << endl;
+        difficulty = 1 / 3;
+    }
 
     displayGalaxy(galaxy, empires);
 
@@ -537,7 +557,7 @@ void generateEmpire(vector<Empire *> &empires, Galaxy &galaxy) {
         empire = nullptr;
         return;
     }
-    
+
     empires.push_back(empire);
 }
 
