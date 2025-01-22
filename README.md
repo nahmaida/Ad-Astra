@@ -4,6 +4,8 @@ __AD ASTRA!__
 
 Минималистичная космическая стратегия. В разработке.
 
+![game screenshot](https://github.com/nahmaida/Ad-Astra/blob/main/screen.jpg?raw=true)
+
 (нужно перед стройкой поменять путь к файлам в коде на свой)
 (альтернативно просто запустить bin/debug/main)
 ## 1. Построить & запустить (дебаг):
